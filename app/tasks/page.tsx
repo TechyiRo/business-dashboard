@@ -1,0 +1,409 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import {
+  ArrowUpDown,
+  CheckCircle,
+  CircleOff,
+  Clock,
+  Download,
+  FileSearch,
+  MoreHorizontal,
+  Plus,
+  ShoppingBag,
+  Trash2,
+  Wrench,
+} from "lucide-react"
+import type { ColumnDef } from "@tanstack/react-table"
+import { jsPDF } from "jspdf"
+import autoTable from "jspdf-autotable"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DataTable } from "@/components/ui/data-table"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "@/components/ui/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
+type Task = {
+  id: string
+  name: string
+  details: string
+  date: string
+  status: string
+  productId: string
+  companyId: string
+  assignedById: string
+  assignedToId: string
+  product?: { name: string }
+  company?: { name: string }
+  assignedBy?: { name: string }
+  assignedTo?: { name: string }
+  workDetail?: {
+    id: string
+  }
+}
+
+export default function TasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(true)
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
+  useEffect(() => {
+    fetchTasks()
+  }, [])
+
+  async function fetchTasks() {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/tasks")
+      if (!response.ok) {
+        throw new Error("Failed to fetch tasks")
+      }
+      const data = await response.json()
+      setTasks(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Error fetching tasks:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load tasks. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function updateTaskStatus(taskId: string, newStatus: string) {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update task status")
+      }
+
+      // Update the local state
+      setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus } : task)))
+
+      toast({
+        title: "Status Updated",
+        description: "Task status has been updated successfully.",
+      })
+    } catch (error) {
+      console.error("Error updating task status:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update task status. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  async function deleteTask(taskId: string) {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete task")
+      }
+
+      // Remove the task from the local state
+      setTasks(tasks.filter((task) => task.id !== taskId))
+
+      toast({
+        title: "Task Deleted",
+        description: "The task has been deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Error deleting task:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete task. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  function exportTaskToPDF(task: Task) {
+    try {
+      const doc = new jsPDF()
+
+      // Add title
+      doc.setFontSize(20)
+      doc.text("Task Details", 14, 22)
+
+      // Add task information
+      const taskData = [
+        ["Task Name", task.name],
+        ["Details", task.details],
+        ["Status", task.status],
+        ["Product", task.product?.name || "N/A"],
+        ["Company", task.company?.name || "N/A"],
+        ["Assigned By", task.assignedBy?.name || "N/A"],
+        ["Assigned To", task.assignedTo?.name || "N/A"],
+        ["Date", new Date(task.date).toLocaleDateString()],
+      ]
+
+      autoTable(doc, {
+        startY: 30,
+        head: [["Field", "Value"]],
+        body: taskData,
+        theme: "striped",
+      })
+
+      // Save the PDF
+      doc.save(`Task_${task.id}.pdf`)
+
+      toast({
+        title: "PDF Exported",
+        description: "Task has been exported to PDF successfully.",
+      })
+    } catch (error) {
+      console.error("Error exporting task to PDF:", error)
+      toast({
+        title: "Export Failed",
+        description: "Failed to export task to PDF. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const taskColumns: ColumnDef<Task>[] = [
+    {
+      accessorKey: "name",
+      header: ({ column }) => {
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+            Name
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+    },
+    {
+      accessorKey: "details",
+      header: "Details",
+    },
+    {
+      accessorKey: "product",
+      header: "Product",
+      cell: ({ row }) => row.original.product?.name || "N/A",
+    },
+    {
+      accessorKey: "company",
+      header: "Company",
+      cell: ({ row }) => row.original.company?.name || "N/A",
+    },
+    {
+      accessorKey: "status",
+      header: ({ column }) => {
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+            Status
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const task = row.original
+
+        return (
+          <Select defaultValue={task.status} onValueChange={(value) => updateTaskStatus(task.id, value)}>
+            <SelectTrigger className="w-[130px]">
+              <SelectValue>
+                {task.status === "Complete" && (
+                  <div className="flex items-center">
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Complete
+                  </div>
+                )}
+                {task.status === "Pending" && (
+                  <div className="flex items-center">
+                    <Clock className="mr-2 h-4 w-4 text-yellow-500" /> Pending
+                  </div>
+                )}
+                {task.status === "Working" && (
+                  <div className="flex items-center">
+                    <Wrench className="mr-2 h-4 w-4 text-blue-500" /> Working
+                  </div>
+                )}
+                {!["Complete", "Pending", "Working"].includes(task.status) && (
+                  <div className="flex items-center">
+                    <CircleOff className="mr-2 h-4 w-4 text-gray-500" /> {task.status}
+                  </div>
+                )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Complete">
+                <div className="flex items-center">
+                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Complete
+                </div>
+              </SelectItem>
+              <SelectItem value="Pending">
+                <div className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4 text-yellow-500" /> Pending
+                </div>
+              </SelectItem>
+              <SelectItem value="Working">
+                <div className="flex items-center">
+                  <Wrench className="mr-2 h-4 w-4 text-blue-500" /> Working
+                </div>
+              </SelectItem>
+              <SelectItem value="Other">
+                <div className="flex items-center">
+                  <CircleOff className="mr-2 h-4 w-4 text-gray-500" /> Other
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        )
+      },
+    },
+    {
+      accessorKey: "assignedTo",
+      header: "Assigned To",
+      cell: ({ row }) => row.original.assignedTo?.name || "N/A",
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const task = row.original
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => {
+                  setDeleteTaskId(task.id)
+                  setIsDeleteDialogOpen(true)
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                Delete
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportTaskToPDF(task)}>
+                <Download className="mr-2 h-4 w-4 text-blue-500" />
+                Export to PDF
+              </DropdownMenuItem>
+              {task.status === "Complete" && task.workDetail ? (
+                <DropdownMenuItem asChild>
+                  <Link href={`/tasks/resolve/${task.id}`}>
+                    <FileSearch className="mr-2 h-4 w-4 text-green-500" />
+                    Resolve Task
+                  </Link>
+                </DropdownMenuItem>
+              ) : task.status !== "Complete" ? (
+                <DropdownMenuItem asChild>
+                  <Link href={`/tasks/complete?taskId=${task.id}`}>
+                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                    Mark as Complete
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+  ]
+
+  return (
+    <div className="container mx-auto p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Tasks</h1>
+        <div className="flex gap-2">
+          <Link href="/tasks/add">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Task
+            </Button>
+          </Link>
+          <Link href="/tasks/complete">
+            <Button variant="outline">
+              <CheckCircle className="mr-2 h-4 w-4" />
+              Complete Task
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <ShoppingBag className="h-5 w-5" />
+            Task List
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center justify-center h-24">
+              <p>Loading tasks...</p>
+            </div>
+          ) : (
+            <DataTable columns={taskColumns} data={tasks} />
+          )}
+        </CardContent>
+      </Card>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the task and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteTaskId) {
+                  deleteTask(deleteTaskId)
+                  setDeleteTaskId(null)
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}

@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  position    String
+  email       String  @unique
+  phone       String
+  
+  assignedBy  Task[]  @relation("AssignedBy")
+  assignedTo  Task[]  @relation("AssignedTo")
+  workDetails WorkDetail[]
+}
+
+model Product {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  category String
+  
+  tasks    Task[]
+}
+
+model Company {
+  id         String @id @default(auto()) @map("_id") @db.ObjectId
+  name       String
+  address    String
+  contactName String
+  contactEmail String
+  contactPhone String
+  
+  tasks      Task[]
+}
+
+model Task {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  details      String
+  date         DateTime
+  status       String
+  
+  product      Product    @relation(fields: [productId], references: [id])
+  productId    String     @db.ObjectId
+  
+  company      Company    @relation(fields: [companyId], references: [id])
+  companyId    String     @db.ObjectId
+  
+  assignedBy   Employee   @relation("AssignedBy", fields: [assignedById], references: [id])
+  assignedById String     @db.ObjectId
+  
+  assignedTo   Employee   @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedToId String     @db.ObjectId
+  
+  workDetail   WorkDetail?
+}
+
+model WorkDetail {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  completionDate DateTime
+  status         String
+  step1          String
+  step2          String?
+  step3          String?
+  additionalSteps String?
+  
+  task           Task     @relation(fields: [taskId], references: [id])
+  taskId         String   @unique @db.ObjectId
+  
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  employeeId     String   @db.ObjectId
+}

@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTable } from "@/components/ui/data-table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DatabaseError } from "@/components/database-error"
+import { DbConnectionError } from "@/components/db-connection-error"
 
 // Type definitions
 type Employee = {
@@ -339,7 +339,7 @@ export default function Dashboard() {
         <h1 className="text-3xl font-bold">Business Dashboard</h1>
       </div>
 
-      {dbError && <DatabaseError />}
+      {dbError && <DbConnectionError />}
 
       <div className="mt-6">
         <Tabs defaultValue="dashboard" value={activeTab} onValueChange={setActiveTab}>

@@ -18,7 +18,7 @@ function getPrismaClient() {
       },
     })
 
-    // Test the connection
+    // Return the client
     return client
   } catch (error) {
     console.error("Failed to initialize Prisma Client:", error)
@@ -33,6 +33,7 @@ function getPrismaClient() {
         2. Ensure the user has proper database access permissions
         3. Verify network access settings in MongoDB Atlas
         4. Check if special characters in password are properly URL encoded
+        5. Make sure you've run 'npx prisma generate' after schema changes
       `)
     }
 

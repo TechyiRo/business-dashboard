@@ -26,6 +26,23 @@ model Product {
   category String
   
   tasks    Task[]
+  inventoryItems ProductInventory[]
+}
+
+model ProductInventory {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  productName String
+  serialNumber String
+  status      String // "RENT" or "SELL"
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  product     Product @relation(fields: [productId], references: [id])
+  productId   String  @db.ObjectId
+  
+  company     Company @relation(fields: [companyId], references: [id])
+  companyId   String  @db.ObjectId
 }
 
 model Company {
@@ -37,6 +54,7 @@ model Company {
   contactPhone String
   
   tasks      Task[]
+  inventoryItems ProductInventory[]
 }
 
 model Task {

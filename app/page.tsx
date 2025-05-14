@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import {
   ArrowUpDown,
   Building2,
@@ -13,6 +14,7 @@ import {
   Plus,
   Users,
   Wrench,
+  Boxes,
 } from "lucide-react"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
@@ -75,8 +77,15 @@ type Task = {
   assignedTo?: Employee
 }
 
+type InventoryItem = {
+  id: string
+  productName: string
+  serialNumber: string
+  status: string
+}
+
 // Custom colors for charts
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
+const COLORS = ["#ED1C24", "#5B5DA8", "#F7941D", "#8884d8"]
 
 // Employee columns
 const employeeColumns: ColumnDef<Employee>[] = [
@@ -250,6 +259,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [dbError, setDbError] = useState(false)
 
@@ -260,11 +270,12 @@ export default function Dashboard() {
         setLoading(true)
         setDbError(false)
 
-        const [employeesRes, productsRes, companiesRes, tasksRes] = await Promise.all([
+        const [employeesRes, productsRes, companiesRes, tasksRes, inventoryRes] = await Promise.all([
           fetch("/api/employees"),
           fetch("/api/products"),
           fetch("/api/companies"),
           fetch("/api/tasks"),
+          fetch("/api/inventory"),
         ])
 
         if (!employeesRes.ok || !productsRes.ok || !companiesRes.ok || !tasksRes.ok) {
@@ -276,11 +287,13 @@ export default function Dashboard() {
         const productsData = await productsRes.json()
         const companiesData = await companiesRes.json()
         const tasksData = await tasksRes.json()
+        const inventoryData = await inventoryRes.json()
 
         setEmployees(Array.isArray(employeesData) ? employeesData : [])
         setProducts(Array.isArray(productsData) ? productsData : [])
         setCompanies(Array.isArray(companiesData) ? companiesData : [])
         setTasks(Array.isArray(tasksData) ? tasksData : [])
+        setInventoryItems(Array.isArray(inventoryData) ? inventoryData : [])
       } catch (error) {
         console.error("Error fetching data:", error)
         setDbError(true)
@@ -289,6 +302,7 @@ export default function Dashboard() {
         setProducts([])
         setCompanies([])
         setTasks([])
+        setInventoryItems([])
       } finally {
         setLoading(false)
       }
@@ -333,61 +347,95 @@ export default function Dashboard() {
         }))
       : []
 
+  const inventoryStatusData = [
+    {
+      name: "RENT",
+      value: Array.isArray(inventoryItems) ? inventoryItems.filter((item) => item.status === "RENT").length : 0,
+    },
+    {
+      name: "SELL",
+      value: Array.isArray(inventoryItems) ? inventoryItems.filter((item) => item.status === "SELL").length : 0,
+    },
+  ]
+
   return (
-    <div className="flex flex-col p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Business Dashboard</h1>
+    <div className="flex flex-col p-4 md:p-6">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="flex items-center gap-3">
+          <div className="relative h-12 w-12 overflow-hidden rounded-lg">
+            <Image
+              src="/images/sp-it-logo.png"
+              alt="SP IT Technologies"
+              fill
+              style={{ objectFit: "contain" }}
+              priority
+            />
+          </div>
+          <h1 className="text-2xl font-bold md:text-3xl">SP IT Technologies</h1>
+        </div>
+        <Link href="/inventory">
+          <Button className="w-full bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90 sm:w-auto">
+            <Boxes className="mr-2 h-4 w-4" />
+            PRODUCT INVENTORY
+          </Button>
+        </Link>
       </div>
 
       {dbError && <DbConnectionError />}
 
       <div className="mt-6">
         <Tabs defaultValue="dashboard" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="employees">Employees</TabsTrigger>
-            <TabsTrigger value="products">Products</TabsTrigger>
-            <TabsTrigger value="companies">Companies</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="products" className="hidden md:block">
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="companies" className="hidden md:block">
+              Companies
+            </TabsTrigger>
+            <TabsTrigger value="tasks" className="hidden md:block">
+              Tasks
+            </TabsTrigger>
           </TabsList>
 
           {/* Dashboard Overview with Charts */}
           <TabsContent value="dashboard" className="mt-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-red/5 pb-2">
                   <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Users className="h-4 w-4 text-sp-red" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{employees.length}</div>
                   <p className="text-xs text-muted-foreground">Team members in the organization</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-blue/5 pb-2">
                   <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
+                  <Package className="h-4 w-4 text-sp-blue" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{products.length}</div>
                   <p className="text-xs text-muted-foreground">Products in the catalog</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-yellow/5 pb-2">
                   <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <Building2 className="h-4 w-4 text-sp-yellow" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{companies.length}</div>
                   <p className="text-xs text-muted-foreground">Client companies registered</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50 pb-2">
                   <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
-                  <ClockIcon className="h-4 w-4 text-muted-foreground" />
+                  <ClockIcon className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{tasks.filter((task) => task.status !== "Complete").length}</div>
@@ -396,10 +444,10 @@ export default function Dashboard() {
               </Card>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 mt-6">
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
               {/* Task Status Chart */}
-              <Card>
-                <CardHeader>
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
                   <CardTitle>Task Status</CardTitle>
                   <CardDescription>Distribution of tasks by status</CardDescription>
                 </CardHeader>
@@ -429,18 +477,18 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
 
-              {/* Product by Category Chart */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Products by Category</CardTitle>
-                  <CardDescription>Distribution of products by category</CardDescription>
+              {/* Inventory Status Chart */}
+              <Card className="overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
+                  <CardTitle>Inventory Status</CardTitle>
+                  <CardDescription>Distribution of inventory items by status</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={productCategoryData}
+                          data={inventoryStatusData}
                           cx="50%"
                           cy="50%"
                           labelLine={true}
@@ -449,9 +497,8 @@ export default function Dashboard() {
                           fill="#8884d8"
                           dataKey="value"
                         >
-                          {productCategoryData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
+                          <Cell fill="#5B5DA8" /> {/* RENT - Blue */}
+                          <Cell fill="#F7941D" /> {/* SELL - Yellow */}
                         </Pie>
                         <Tooltip />
                         <Legend />
@@ -463,8 +510,8 @@ export default function Dashboard() {
             </div>
 
             {/* Tasks by Company Chart */}
-            <Card className="mt-6">
-              <CardHeader>
+            <Card className="mt-6 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
                 <CardTitle>Tasks by Company</CardTitle>
                 <CardDescription>Number of tasks assigned to each company</CardDescription>
               </CardHeader>
@@ -485,7 +532,7 @@ export default function Dashboard() {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="tasks" fill="#8884d8" />
+                      <Bar dataKey="tasks" fill="#ED1C24" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -494,11 +541,11 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="employees" className="mt-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
                 <CardTitle>Employees</CardTitle>
                 <Link href="/employees/add">
-                  <Button size="sm">
+                  <Button size="sm" className="bg-sp-red hover:bg-sp-red/90">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Employee
                   </Button>
@@ -507,7 +554,7 @@ export default function Dashboard() {
               <CardContent>
                 {loading ? (
                   <div className="flex items-center justify-center h-24">
-                    <p>Loading employees...</p>
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-red border-t-transparent"></div>
                   </div>
                 ) : (
                   <DataTable columns={employeeColumns} data={employees} />
@@ -517,11 +564,11 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="products" className="mt-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
                 <CardTitle>Products</CardTitle>
                 <Link href="/products/add">
-                  <Button size="sm">
+                  <Button size="sm" className="bg-sp-blue hover:bg-sp-blue/90">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Product
                   </Button>
@@ -530,7 +577,7 @@ export default function Dashboard() {
               <CardContent>
                 {loading ? (
                   <div className="flex items-center justify-center h-24">
-                    <p>Loading products...</p>
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-blue border-t-transparent"></div>
                   </div>
                 ) : (
                   <DataTable columns={productColumns} data={products} />
@@ -540,11 +587,11 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="companies" className="mt-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
                 <CardTitle>Companies</CardTitle>
                 <Link href="/companies/add">
-                  <Button size="sm">
+                  <Button size="sm" className="bg-sp-yellow hover:bg-sp-yellow/90">
                     <Plus className="mr-2 h-4 w-4" />
                     Add Company
                   </Button>
@@ -553,7 +600,7 @@ export default function Dashboard() {
               <CardContent>
                 {loading ? (
                   <div className="flex items-center justify-center h-24">
-                    <p>Loading companies...</p>
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-yellow border-t-transparent"></div>
                   </div>
                 ) : (
                   <DataTable columns={companyColumns} data={companies} />
@@ -563,12 +610,12 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="tasks" className="mt-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+            <Card className="overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50">
                 <CardTitle>Tasks</CardTitle>
                 <div className="flex gap-2">
                   <Link href="/tasks/add">
-                    <Button size="sm">
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
                       <Plus className="mr-2 h-4 w-4" />
                       Add Task
                     </Button>
@@ -584,7 +631,7 @@ export default function Dashboard() {
               <CardContent>
                 {loading ? (
                   <div className="flex items-center justify-center h-24">
-                    <p>Loading tasks...</p>
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
                   </div>
                 ) : (
                   <DataTable columns={taskColumns} data={tasks} />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -23,11 +23,12 @@ const formSchema = z.object({
   }),
 })
 
-const categories = ["FIREWALL","MANAGED SWITCCHES", "ACCESS POINT","ANTIVIRUS","BACKUP-SOLUTIONS","OS","WIN SERVER","SOFTWARE","HARDWARE", "ROUTER", "OTHER"]
+const categories = ["Digital Services", "Software", "Marketing", "Hardware", "Consulting", "Other"]
 
-export default function AddProductPage() {
+export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -37,12 +38,44 @@ export default function AddProductPage() {
     },
   })
 
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/products/${params.id}`)
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch product")
+        }
+
+        const product = await response.json()
+
+        form.reset({
+          name: product.name,
+          category: product.category,
+        })
+      } catch (error) {
+        console.error("Error fetching product:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load product data. Please try again.",
+          variant: "destructive",
+        })
+        router.push("/products")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProduct()
+  }, [params.id, form, router])
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("/api/products", {
-        method: "POST",
+      const response = await fetch(`/api/products/${params.id}`, {
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
@@ -50,21 +83,21 @@ export default function AddProductPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to add product")
+        throw new Error("Failed to update product")
       }
 
       toast({
-        title: "Product added",
-        description: "The product has been added successfully.",
+        title: "Product updated",
+        description: "The product has been updated successfully.",
       })
 
-      router.push("/")
+      router.push("/products")
       router.refresh()
     } catch (error) {
-      console.error("Error adding product:", error)
+      console.error("Error updating product:", error)
       toast({
         title: "Error",
-        description: "There was a problem adding the product.",
+        description: "There was a problem updating the product.",
         variant: "destructive",
       })
     } finally {
@@ -72,15 +105,23 @@ export default function AddProductPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="container mx-auto py-10 flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-blue border-t-transparent"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="container mx-auto py-10">
       <Card className="mx-auto max-w-md">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Package className="h-6 w-6" />
-            <CardTitle>Add Product</CardTitle>
+            <Package className="h-6 w-6 text-sp-blue" />
+            <CardTitle>Edit Product</CardTitle>
           </div>
-          <CardDescription>Add a new product to your catalog.</CardDescription>
+          <CardDescription>Update product information.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -122,9 +163,16 @@ export default function AddProductPage() {
                   </FormItem>
                 )}
               />
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Adding..." : "Add Product"}
+              <div className="flex justify-between">
+                <Button type="button" variant="outline" onClick={() => router.push("/products")}>
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-sp-blue to-sp-yellow hover:from-sp-blue/90 hover:to-sp-yellow/90"
+                >
+                  {isSubmitting ? "Updating..." : "Update Product"}
                 </Button>
               </div>
             </form>

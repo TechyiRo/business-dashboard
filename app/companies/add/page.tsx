@@ -64,12 +64,16 @@ export default function AddCompanyPage() {
       }
 
       toast({
-        title: "Company added",
-        description: "The company has been added successfully.",
+        title: "Success!",
+        description: "Company added successfully.",
+        variant: "default",
       })
 
-      router.push("/")
-      router.refresh()
+      // Redirect to the companies page after a short delay
+      setTimeout(() => {
+        router.push("/companies")
+        router.refresh()
+      }, 1500)
     } catch (error) {
       console.error("Error adding company:", error)
       toast({

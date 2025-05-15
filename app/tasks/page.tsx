@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   Trash2,
   Wrench,
+  UserCheck,
 } from "lucide-react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { jsPDF } from "jspdf"
@@ -253,7 +254,12 @@ export default function TasksPage() {
                     <Wrench className="mr-2 h-4 w-4 text-blue-500" /> Working
                   </div>
                 )}
-                {!["Complete", "Pending", "Working"].includes(task.status) && (
+                {task.status === "Assigned" && (
+                  <div className="flex items-center">
+                    <UserCheck className="mr-2 h-4 w-4 text-purple-500" /> Assigned
+                  </div>
+                )}
+                {!["Complete", "Pending", "Working", "Assigned"].includes(task.status) && (
                   <div className="flex items-center">
                     <CircleOff className="mr-2 h-4 w-4 text-gray-500" /> {task.status}
                   </div>
@@ -274,6 +280,11 @@ export default function TasksPage() {
               <SelectItem value="Working">
                 <div className="flex items-center">
                   <Wrench className="mr-2 h-4 w-4 text-blue-500" /> Working
+                </div>
+              </SelectItem>
+              <SelectItem value="Assigned">
+                <div className="flex items-center">
+                  <UserCheck className="mr-2 h-4 w-4 text-purple-500" /> Assigned
                 </div>
               </SelectItem>
               <SelectItem value="Other">

@@ -148,11 +148,16 @@ export default function AddInventoryItemPage() {
       }
 
       toast({
-        title: "Inventory Item Added",
-        description: "The inventory item has been added successfully.",
+        title: "Success!",
+        description: "Inventory item added successfully.",
+        variant: "default",
       })
 
-      router.push("/inventory")
+      // Redirect to the inventory page after a short delay
+      setTimeout(() => {
+        router.push("/inventory")
+        router.refresh()
+      }, 1500)
     } catch (error) {
       console.error("Error adding inventory item:", error)
       toast({

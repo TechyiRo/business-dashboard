@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowUpDown, Download, Edit, Plus, Trash2 } from "lucide-react"
-import type { ColumnDef } from "@tanstack/react-table"
+import { ArrowUpDown, Boxes, Download, Edit, MoreHorizontal, Plus, Trash, RefreshCw } from "lucide-react"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTable } from "@/components/ui/data-table"
 import {
   DropdownMenu,
@@ -18,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
 import { toast } from "@/components/ui/use-toast"
 import {
   AlertDialog,
@@ -36,24 +36,23 @@ type InventoryItem = {
   serialNumber: string
   status: string
   imageUrl?: string
+  productId: string
+  companyId: string
   product: {
     name: string
     category: string
-  }
+  } | null
   company: {
     name: string
-    contactName: string
-    contactEmail: string
-    contactPhone: string
-  }
+  } | null
 }
 
 export default function InventoryPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [dbError, setDbError] = useState(false)
 
   useEffect(() => {
     fetchInventoryItems()
@@ -62,22 +61,35 @@ export default function InventoryPage() {
   async function fetchInventoryItems() {
     try {
       setLoading(true)
-      setDbError(false)
+      setError(null)
+
       const response = await fetch("/api/inventory")
+
       if (!response.ok) {
-        throw new Error("Failed to fetch inventory items")
+        const errorText = await response.text()
+        throw new Error(`Failed to fetch inventory items: ${response.status} ${response.statusText}. ${errorText}`)
       }
+
       const data = await response.json()
-      setInventoryItems(Array.isArray(data) ? data : [])
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      // Ensure we have an array and filter out any items with null relations
+      const validItems = Array.isArray(data)
+        ? data.filter((item) => item.product !== null && item.company !== null)
+        : []
+
+      setInventoryItems(validItems)
     } catch (error) {
       console.error("Error fetching inventory items:", error)
+      setError(error instanceof Error ? error.message : "An unknown error occurred")
       toast({
-        title: "Database Error",
-        description: "Failed to load inventory items. The database might not be properly set up or connected.",
+        title: "Error",
+        description: "Failed to load inventory items. Please try again.",
         variant: "destructive",
       })
-      setInventoryItems([])
-      setDbError(true)
     } finally {
       setLoading(false)
     }
@@ -97,7 +109,7 @@ export default function InventoryPage() {
       setInventoryItems(inventoryItems.filter((item) => item.id !== id))
 
       toast({
-        title: "Item Deleted",
+        title: "Inventory Item Deleted",
         description: "The inventory item has been deleted successfully.",
       })
     } catch (error) {
@@ -110,51 +122,59 @@ export default function InventoryPage() {
     }
   }
 
-  function exportItemToPDF(item: InventoryItem) {
+  function exportToPDF() {
     try {
       const doc = new jsPDF()
 
       // Add title
       doc.setFontSize(20)
-      doc.text("Product Inventory Details", 14, 22)
+      doc.setTextColor(0, 51, 102) // SP IT Blue color
+      doc.text("SP IT Technologies - Product Inventory", 14, 22)
 
-      // Add item information
-      const itemData = [
-        ["Product Name", item.productName],
-        ["Serial Number", item.serialNumber],
-        ["Status", item.status],
-        ["Product Category", item.product?.category || "N/A"],
-        ["Company", item.company?.name || "N/A"],
-        ["Contact Name", item.company?.contactName || "N/A"],
-        ["Contact Email", item.company?.contactEmail || "N/A"],
-        ["Contact Phone", item.company?.contactPhone || "N/A"],
-      ]
+      // Add date
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30)
 
+      // Prepare data for table
+      const tableData = inventoryItems.map((item) => [
+        item.productName,
+        item.serialNumber,
+        item.product?.name || "N/A",
+        item.product?.category || "N/A",
+        item.company?.name || "N/A",
+        item.status,
+      ])
+
+      // Add table
       autoTable(doc, {
-        startY: 30,
-        head: [["Field", "Value"]],
-        body: itemData,
+        startY: 35,
+        head: [["Product Name", "Serial Number", "Product Type", "Category", "Company", "Status"]],
+        body: tableData,
         theme: "striped",
+        headStyles: {
+          fillColor: [0, 51, 102], // SP IT Blue color
+        },
       })
 
       // Save the PDF
-      doc.save(`Inventory_${item.id}.pdf`)
+      doc.save("SP_IT_Product_Inventory.pdf")
 
       toast({
         title: "PDF Exported",
-        description: "Inventory item has been exported to PDF successfully.",
+        description: "Inventory has been exported to PDF successfully.",
       })
     } catch (error) {
-      console.error("Error exporting item to PDF:", error)
+      console.error("Error exporting to PDF:", error)
       toast({
         title: "Export Failed",
-        description: "Failed to export inventory item to PDF. Please try again.",
+        description: "Failed to export inventory to PDF. Please try again.",
         variant: "destructive",
       })
     }
   }
 
-  const inventoryColumns: ColumnDef<InventoryItem>[] = [
+  const columns = [
     {
       accessorKey: "productName",
       header: ({ column }) => {
@@ -171,30 +191,32 @@ export default function InventoryPage() {
       header: "Serial Number",
     },
     {
+      accessorKey: "product.name",
+      header: "Product Type",
+      cell: ({ row }) => row.original.product?.name || "N/A",
+    },
+    {
+      accessorKey: "product.category",
+      header: "Category",
+      cell: ({ row }) => row.original.product?.category || "N/A",
+    },
+    {
       accessorKey: "company.name",
       header: "Company",
       cell: ({ row }) => row.original.company?.name || "N/A",
     },
     {
       accessorKey: "status",
-      header: ({ column }) => {
-        return (
-          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-            Status
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        )
-      },
+      header: "Status",
       cell: ({ row }) => {
         const status = row.original.status
         return (
-          <div
-            className={`rounded-full px-2 py-1 text-xs font-medium ${
-              status === "RENT" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
-            }`}
+          <Badge
+            variant={status === "RENT" ? "outline" : "default"}
+            className={status === "RENT" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}
           >
             {status}
-          </div>
+          </Badge>
         )
       },
     },
@@ -208,22 +230,7 @@ export default function InventoryPage() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
                 <span className="sr-only">Open menu</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="lucide lucide-more-horizontal"
-                >
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="19" cy="12" r="1" />
-                  <circle cx="5" cy="12" r="1" />
-                </svg>
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -241,12 +248,8 @@ export default function InventoryPage() {
                   setIsDeleteDialogOpen(true)
                 }}
               >
-                <Trash2 className="mr-2 h-4 w-4 text-red-500" />
+                <Trash className="mr-2 h-4 w-4 text-red-500" />
                 Delete
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportItemToPDF(item)}>
-                <Download className="mr-2 h-4 w-4 text-green-500" />
-                Export to PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -255,74 +258,123 @@ export default function InventoryPage() {
     },
   ]
 
+  if (error) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card className="border-red-200">
+          <CardHeader className="bg-red-50 border-b border-red-100">
+            <CardTitle className="text-red-800 flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-alert-circle"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Error Loading Inventory
+            </CardTitle>
+            <CardDescription className="text-red-700">
+              There was a problem loading the inventory items: {error}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-2">This could be due to one of the following reasons:</h3>
+                <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Database connection issue</li>
+                  <li>Missing or invalid data in the database</li>
+                  <li>Prisma schema mismatch with database structure</li>
+                  <li>Server-side error during data processing</li>
+                </ul>
+              </div>
+
+              <div className="bg-amber-50 p-4 rounded-md border border-amber-200">
+                <h4 className="font-medium text-amber-800 mb-2">Suggested actions:</h4>
+                <ol className="list-decimal pl-5 space-y-1 text-amber-700">
+                  <li>Check that your database is properly connected</li>
+                  <li>
+                    Run <code className="bg-amber-100 px-1 py-0.5 rounded">npx prisma generate</code> to update the
+                    Prisma client
+                  </li>
+                  <li>
+                    Run <code className="bg-amber-100 px-1 py-0.5 rounded">npx prisma db push</code> to sync your schema
+                  </li>
+                  <li>Check for any orphaned records in your database</li>
+                </ol>
+              </div>
+
+              <div className="flex justify-center mt-6">
+                <Button onClick={fetchInventoryItems} className="bg-sp-blue hover:bg-sp-blue/90 text-white">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
-    <div className="container mx-auto p-4 md:p-6">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold md:text-3xl">Product Inventory</h1>
-        <Link href="/inventory/add">
-          <Button className="w-full bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90 sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Inventory Item
+    <div className="container mx-auto p-6">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-3xl font-bold">Product Inventory</h1>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Link href="/inventory/add">
+            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-blue to-sp-red hover:from-sp-blue/90 hover:to-sp-red/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Item
+            </Button>
+          </Link>
+          <Button variant="outline" onClick={exportToPDF} className="w-full sm:w-auto">
+            <Download className="mr-2 h-4 w-4" />
+            Export to PDF
           </Button>
-        </Link>
+        </div>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-sp-blue/10 to-sp-red/10">
-          <CardTitle className="flex items-center gap-2 text-sp-blue">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="lucide lucide-boxes"
-            >
-              <path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z" />
-              <path d="m7 16.5-4.74-2.85" />
-              <path d="m7 16.5 5-3" />
-              <path d="M7 16.5v5.17" />
-              <path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z" />
-              <path d="m17 16.5-5-3" />
-              <path d="m17 16.5 4.74-2.85" />
-              <path d="M17 16.5v5.17" />
-              <path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z" />
-              <path d="M12 8 7.26 5.15" />
-              <path d="m12 8 4.74-2.85" />
-              <path d="M12 13.5V8" />
-            </svg>
-            Inventory Items
-          </CardTitle>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-red/10">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Boxes className="h-5 w-5 text-sp-blue" />
+              Inventory Items
+            </CardTitle>
+            <CardDescription>Manage your product inventory items</CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center h-24">
+            <div className="flex items-center justify-center h-64">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-blue border-t-transparent"></div>
             </div>
+          ) : inventoryItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <Boxes className="h-16 w-16 text-gray-300 mb-4" />
+              <h3 className="text-xl font-medium text-gray-900">No inventory items found</h3>
+              <p className="text-gray-500 mt-2 max-w-md">
+                Get started by adding your first inventory item using the "Add Item" button above.
+              </p>
+              <Link href="/inventory/add" className="mt-4">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Item
+                </Button>
+              </Link>
+            </div>
           ) : (
-            <>
-              {dbError && (
-                <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-                  <h3 className="mb-2 font-semibold">Database Connection Error</h3>
-                  <p className="text-sm">There was an error connecting to the database. This might be because:</p>
-                  <ul className="mt-2 list-inside list-disc text-sm">
-                    <li>The database hasn't been properly set up</li>
-                    <li>The Prisma schema needs to be generated</li>
-                    <li>The database connection string is incorrect</li>
-                  </ul>
-                  <p className="mt-2 text-sm">
-                    Try running <code className="rounded bg-red-100 px-1 py-0.5">npx prisma generate</code> and
-                    <code className="ml-1 rounded bg-red-100 px-1 py-0.5">npx prisma db push</code> to set up the
-                    database.
-                  </p>
-                </div>
-              )}
-              <DataTable columns={inventoryColumns} data={inventoryItems} />
-            </>
+            <DataTable columns={columns} data={inventoryItems} />
           )}
         </CardContent>
       </Card>

@@ -42,6 +42,7 @@ export default function AddEmployeePage() {
     },
   })
 
+  // Update the onSubmit function to include a success message and redirection
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
 
@@ -59,12 +60,16 @@ export default function AddEmployeePage() {
       }
 
       toast({
-        title: "Employee added",
-        description: "The employee has been added successfully.",
+        title: "Success!",
+        description: "Employee added successfully.",
+        variant: "default",
       })
 
-      router.push("/")
-      router.refresh()
+      // Redirect to the employees page after a short delay
+      setTimeout(() => {
+        router.push("/employees")
+        router.refresh()
+      }, 1500)
     } catch (error) {
       console.error("Error adding employee:", error)
       toast({

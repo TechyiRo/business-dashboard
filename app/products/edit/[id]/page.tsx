@@ -23,7 +23,19 @@ const formSchema = z.object({
   }),
 })
 
-const categories = ["Digital Services", "Software", "Marketing", "Hardware", "Consulting", "Other"]
+const categories = [
+  "FIREWALL",
+  "MANAGED SWITCHES",
+  "ACCESS POINT",
+  "ANTIVIRUS",
+  "BACKUP-SOLUTIONS",
+  "OS",
+  "WIN SERVER",
+  "SOFTWARE",
+  "HARDWARE",
+  "ROUTER",
+  "OTHER",
+]
 
 export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter()

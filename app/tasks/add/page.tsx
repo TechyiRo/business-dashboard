@@ -31,6 +31,7 @@ type Company = {
   name: string
 }
 
+// Update the formSchema to include the new status
 const formSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
@@ -53,12 +54,13 @@ const formSchema = z.object({
   assignedToId: z.string().min(1, {
     message: "Please select who the task is assigned to.",
   }),
-  status: z.enum(["Complete", "Pending", "Working", "Other"] as const, {
+  status: z.enum(["Complete", "Pending", "Working", "Assigned", "Other"] as const, {
     message: "Please select a status.",
   }),
 })
 
-const taskStatuses = ["Complete", "Pending", "Working", "Other"] as const
+// Update the taskStatuses constant to include "Assigned"
+const taskStatuses = ["Complete", "Pending", "Working", "Assigned", "Other"] as const
 
 export default function AddTaskPage() {
   const router = useRouter()
@@ -133,12 +135,16 @@ export default function AddTaskPage() {
       }
 
       toast({
-        title: "Task added",
-        description: "The task has been added successfully.",
+        title: "Success!",
+        description: "Task added successfully.",
+        variant: "default",
       })
 
-      router.push("/")
-      router.refresh()
+      // Redirect to the tasks page after a short delay
+      setTimeout(() => {
+        router.push("/tasks")
+        router.refresh()
+      }, 1500)
     } catch (error) {
       console.error("Error adding task:", error)
       toast({

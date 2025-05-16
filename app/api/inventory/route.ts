@@ -3,19 +3,46 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
-    // Instead of trying to filter out invalid items first (which causes the error),
-    // we'll directly fetch all inventory items and handle any potential issues
-    const inventoryItems = await prisma.productInventory.findMany({
-      include: {
-        product: true,
-        company: true,
-      },
-    })
+    // Use a simpler query that doesn't rely on relations
+    const inventoryItems = await prisma.productInventory.findMany()
 
-    // Filter out any items with null relations on the JavaScript side
-    const validItems = inventoryItems.filter((item) => item.product !== null && item.company !== null)
+    // Then manually fetch the related products and companies
+    const itemsWithRelations = await Promise.all(
+      inventoryItems.map(async (item) => {
+        let product = null
+        let company = null
 
-    return NextResponse.json(validItems)
+        // Only try to fetch product if productId exists
+        if (item.productId) {
+          try {
+            product = await prisma.product.findUnique({
+              where: { id: item.productId },
+            })
+          } catch (e) {
+            console.error(`Error fetching product for item ${item.id}:`, e)
+          }
+        }
+
+        // Only try to fetch company if companyId exists
+        if (item.companyId) {
+          try {
+            company = await prisma.company.findUnique({
+              where: { id: item.companyId },
+            })
+          } catch (e) {
+            console.error(`Error fetching company for item ${item.id}:`, e)
+          }
+        }
+
+        return {
+          ...item,
+          product,
+          company,
+        }
+      }),
+    )
+
+    return NextResponse.json(itemsWithRelations)
   } catch (error) {
     console.error("Error fetching inventory items:", error)
     return NextResponse.json({ error: "Failed to fetch inventory items" }, { status: 500 })
@@ -27,34 +54,56 @@ export async function POST(request: Request) {
     const data = await request.json()
 
     // Verify that the product and company exist before creating the inventory item
-    const [product, company] = await Promise.all([
-      prisma.product.findUnique({ where: { id: data.productId } }),
-      prisma.company.findUnique({ where: { id: data.companyId } }),
-    ])
+    let productExists = false
+    let companyExists = false
 
-    if (!product) {
-      return NextResponse.json({ error: "Product not found" }, { status: 404 })
+    if (data.productId) {
+      const product = await prisma.product.findUnique({
+        where: { id: data.productId },
+      })
+      productExists = !!product
     }
 
-    if (!company) {
-      return NextResponse.json({ error: "Company not found" }, { status: 404 })
+    if (data.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: data.companyId },
+      })
+      companyExists = !!company
     }
 
+    // Create the inventory item with validated relations
     const inventoryItem = await prisma.productInventory.create({
       data: {
         productName: data.productName,
         serialNumber: data.serialNumber,
         status: data.status,
         imageUrl: data.imageUrl,
-        productId: data.productId,
-        companyId: data.companyId,
-      },
-      include: {
-        product: true,
-        company: true,
+        productId: productExists ? data.productId : null,
+        companyId: companyExists ? data.companyId : null,
       },
     })
-    return NextResponse.json(inventoryItem)
+
+    // Manually fetch the related product and company
+    let product = null
+    let company = null
+
+    if (inventoryItem.productId) {
+      product = await prisma.product.findUnique({
+        where: { id: inventoryItem.productId },
+      })
+    }
+
+    if (inventoryItem.companyId) {
+      company = await prisma.company.findUnique({
+        where: { id: inventoryItem.companyId },
+      })
+    }
+
+    return NextResponse.json({
+      ...inventoryItem,
+      product,
+      company,
+    })
   } catch (error) {
     console.error("Error creating inventory item:", error)
     return NextResponse.json({ error: "Error creating inventory item" }, { status: 500 })

@@ -38,11 +38,12 @@ model ProductInventory {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  product     Product @relation(fields: [productId], references: [id])
-  productId   String  @db.ObjectId
+  // Make these relations optional with ?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId   String?  @db.ObjectId
   
-  company     Company @relation(fields: [companyId], references: [id])
-  companyId   String  @db.ObjectId
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId   String?  @db.ObjectId
 }
 
 model Company {

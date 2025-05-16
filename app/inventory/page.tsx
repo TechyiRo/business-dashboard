@@ -36,8 +36,8 @@ type InventoryItem = {
   serialNumber: string
   status: string
   imageUrl?: string
-  productId: string
-  companyId: string
+  productId: string | null
+  companyId: string | null
   product: {
     name: string
     category: string
@@ -63,10 +63,17 @@ export default function InventoryPage() {
       setLoading(true)
       setError(null)
 
+      console.log("Fetching inventory items...")
       const response = await fetch("/api/inventory")
 
       if (!response.ok) {
-        const errorText = await response.text()
+        let errorText = ""
+        try {
+          const errorData = await response.json()
+          errorText = JSON.stringify(errorData)
+        } catch (e) {
+          errorText = await response.text()
+        }
         throw new Error(`Failed to fetch inventory items: ${response.status} ${response.statusText}. ${errorText}`)
       }
 
@@ -76,12 +83,8 @@ export default function InventoryPage() {
         throw new Error(data.error)
       }
 
-      // Ensure we have an array and filter out any items with null relations
-      const validItems = Array.isArray(data)
-        ? data.filter((item) => item.product !== null && item.company !== null)
-        : []
-
-      setInventoryItems(validItems)
+      console.log("Inventory items fetched:", data)
+      setInventoryItems(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching inventory items:", error)
       setError(error instanceof Error ? error.message : "An unknown error occurred")

@@ -43,6 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { SearchInput } from "@/components/search-input"
 
 type Task = {
   id: string
@@ -65,6 +66,8 @@ type Task = {
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -72,6 +75,25 @@ export default function TasksPage() {
   useEffect(() => {
     fetchTasks()
   }, [])
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredTasks(tasks)
+    } else {
+      const lowercasedSearch = searchTerm.toLowerCase()
+      const filtered = tasks.filter(
+        (task) =>
+          task.name.toLowerCase().includes(lowercasedSearch) ||
+          task.details.toLowerCase().includes(lowercasedSearch) ||
+          task.status.toLowerCase().includes(lowercasedSearch) ||
+          task.product?.name?.toLowerCase().includes(lowercasedSearch) ||
+          task.company?.name?.toLowerCase().includes(lowercasedSearch) ||
+          task.assignedBy?.name?.toLowerCase().includes(lowercasedSearch) ||
+          task.assignedTo?.name?.toLowerCase().includes(lowercasedSearch),
+      )
+      setFilteredTasks(filtered)
+    }
+  }, [searchTerm, tasks])
 
   async function fetchTasks() {
     try {
@@ -82,6 +104,7 @@ export default function TasksPage() {
       }
       const data = await response.json()
       setTasks(Array.isArray(data) ? data : [])
+      setFilteredTasks(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching tasks:", error)
       toast({
@@ -109,7 +132,24 @@ export default function TasksPage() {
       }
 
       // Update the local state
-      setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus } : task)))
+      const updatedTasks = tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus } : task))
+      setTasks(updatedTasks)
+      setFilteredTasks(
+        searchTerm.trim() === ""
+          ? updatedTasks
+          : updatedTasks.filter((task) => {
+              const lowercasedSearch = searchTerm.toLowerCase()
+              return (
+                task.name.toLowerCase().includes(lowercasedSearch) ||
+                task.details.toLowerCase().includes(lowercasedSearch) ||
+                task.status.toLowerCase().includes(lowercasedSearch) ||
+                task.product?.name?.toLowerCase().includes(lowercasedSearch) ||
+                task.company?.name?.toLowerCase().includes(lowercasedSearch) ||
+                task.assignedBy?.name?.toLowerCase().includes(lowercasedSearch) ||
+                task.assignedTo?.name?.toLowerCase().includes(lowercasedSearch)
+              )
+            }),
+      )
 
       toast({
         title: "Status Updated",
@@ -136,7 +176,9 @@ export default function TasksPage() {
       }
 
       // Remove the task from the local state
-      setTasks(tasks.filter((task) => task.id !== taskId))
+      const updatedTasks = tasks.filter((task) => task.id !== taskId)
+      setTasks(updatedTasks)
+      setFilteredTasks(searchTerm.trim() === "" ? updatedTasks : filteredTasks.filter((task) => task.id !== taskId))
 
       toast({
         title: "Task Deleted",
@@ -191,6 +233,54 @@ export default function TasksPage() {
       toast({
         title: "Export Failed",
         description: "Failed to export task to PDF. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  function exportAllTasksToPDF() {
+    try {
+      const doc = new jsPDF()
+
+      // Add title
+      doc.setFontSize(20)
+      doc.text("Tasks List", 14, 22)
+
+      // Add current date
+      const date = new Date().toLocaleDateString()
+      doc.setFontSize(10)
+      doc.text(`Generated on: ${date}`, 14, 30)
+
+      // Prepare data for table
+      const tableColumn = ["Name", "Status", "Product", "Company", "Assigned To"]
+      const tableRows = filteredTasks.map((task) => [
+        task.name,
+        task.status,
+        task.product?.name || "N/A",
+        task.company?.name || "N/A",
+        task.assignedTo?.name || "N/A",
+      ])
+
+      // Add table to document
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 35,
+        theme: "striped",
+      })
+
+      // Save the PDF
+      doc.save("SP_IT_Technologies_Tasks.pdf")
+
+      toast({
+        title: "PDF Exported",
+        description: "Tasks list has been exported to PDF successfully.",
+      })
+    } catch (error) {
+      console.error("Error exporting to PDF:", error)
+      toast({
+        title: "Export Failed",
+        description: "Failed to export tasks to PDF. Please try again.",
         variant: "destructive",
       })
     }
@@ -379,6 +469,11 @@ export default function TasksPage() {
             <ShoppingBag className="h-5 w-5" />
             Task List
           </CardTitle>
+          <SearchInput
+            placeholder="Search tasks..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -386,7 +481,7 @@ export default function TasksPage() {
               <p>Loading tasks...</p>
             </div>
           ) : (
-            <DataTable columns={taskColumns} data={tasks} />
+            <DataTable columns={taskColumns} data={filteredTasks} />
           )}
         </CardContent>
       </Card>

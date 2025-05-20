@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { SearchInput } from "@/components/search-input"
 
 type Product = {
   id: string
@@ -38,6 +39,8 @@ type Product = {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -46,6 +49,20 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchProducts()
   }, [])
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredProducts(products)
+    } else {
+      const lowercasedSearch = searchTerm.toLowerCase()
+      const filtered = products.filter(
+        (product) =>
+          product.name.toLowerCase().includes(lowercasedSearch) ||
+          product.category.toLowerCase().includes(lowercasedSearch),
+      )
+      setFilteredProducts(filtered)
+    }
+  }, [searchTerm, products])
 
   async function fetchProducts() {
     try {
@@ -56,6 +73,7 @@ export default function ProductsPage() {
       }
       const data = await response.json()
       setProducts(data)
+      setFilteredProducts(data)
     } catch (error) {
       console.error("Error fetching products:", error)
       toast({
@@ -83,7 +101,11 @@ export default function ProductsPage() {
       }
 
       // Remove the product from the local state
-      setProducts(products.filter((product) => product.id !== id))
+      const updatedProducts = products.filter((product) => product.id !== id)
+      setProducts(updatedProducts)
+      setFilteredProducts(
+        searchTerm.trim() === "" ? updatedProducts : filteredProducts.filter((product) => product.id !== id),
+      )
 
       toast({
         title: "Product Deleted",
@@ -113,7 +135,7 @@ export default function ProductsPage() {
 
       // Prepare data for table
       const tableColumn = ["Name", "Category"]
-      const tableRows = products.map((product) => [product.name, product.category])
+      const tableRows = filteredProducts.map((product) => [product.name, product.category])
 
       // Add table to document
       autoTable(doc, {
@@ -263,22 +285,29 @@ export default function ProductsPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-3xl font-bold">Products</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2 animate-fade-in">
+          <Package className="h-8 w-8 text-sp-blue" />
+          Products
+        </h1>
         <div className="flex flex-col sm:flex-row gap-2">
           <Link href="/products/add">
-            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-blue to-sp-yellow hover:from-sp-blue/90 hover:to-sp-yellow/90">
+            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-blue to-sp-yellow hover:from-sp-blue/90 hover:to-sp-yellow/90 transition-all duration-300 hover:shadow-md">
               <Plus className="mr-2 h-4 w-4" />
               Add Product
             </Button>
           </Link>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={exportProductsToPDF}>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto transition-all duration-300 hover:shadow-md"
+            onClick={exportProductsToPDF}
+          >
             <Download className="mr-2 h-4 w-4" />
             Export All
           </Button>
         </div>
       </div>
 
-      <Card>
+      <Card className="transition-all duration-300 hover:shadow-md">
         <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-sp-blue" />
@@ -286,18 +315,52 @@ export default function ProductsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <SearchInput
+              placeholder="Search products by name or category..."
+              onChange={setSearchTerm}
+              className="max-w-md"
+            />
+          </div>
           {loading ? (
             <div className="flex items-center justify-center h-24">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-blue border-t-transparent"></div>
             </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              {searchTerm ? (
+                <>
+                  <div className="text-4xl mb-3">🔍</div>
+                  <h3 className="text-xl font-medium text-gray-900">No matching products found</h3>
+                  <p className="text-gray-500 mt-2">Try adjusting your search terms</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl mb-3">📦</div>
+                  <h3 className="text-xl font-medium text-gray-900">No products yet</h3>
+                  <p className="text-gray-500 mt-2">Add your first product to get started</p>
+                  <Link href="/products/add" className="mt-4">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Your First Product
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
           ) : (
-            <DataTable columns={productColumns} data={products} />
+            <div className="animate-fade-in">
+              <DataTable columns={productColumns} data={filteredProducts} />
+              <p className="text-sm text-muted-foreground mt-2">
+                Showing {filteredProducts.length} of {products.length} products
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="animate-fade-in-up">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>

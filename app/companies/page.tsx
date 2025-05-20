@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { SearchInput } from "@/components/search-input"
 
 type Company = {
   id: string
@@ -41,6 +42,8 @@ type Company = {
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
+  const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleteCompanyId, setDeleteCompanyId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -49,6 +52,23 @@ export default function CompaniesPage() {
   useEffect(() => {
     fetchCompanies()
   }, [])
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredCompanies(companies)
+    } else {
+      const lowercasedSearch = searchTerm.toLowerCase()
+      const filtered = companies.filter(
+        (company) =>
+          company.name.toLowerCase().includes(lowercasedSearch) ||
+          company.address.toLowerCase().includes(lowercasedSearch) ||
+          company.contactName.toLowerCase().includes(lowercasedSearch) ||
+          company.contactEmail.toLowerCase().includes(lowercasedSearch) ||
+          company.contactPhone.toLowerCase().includes(lowercasedSearch),
+      )
+      setFilteredCompanies(filtered)
+    }
+  }, [searchTerm, companies])
 
   async function fetchCompanies() {
     try {
@@ -59,6 +79,7 @@ export default function CompaniesPage() {
       }
       const data = await response.json()
       setCompanies(data)
+      setFilteredCompanies(data)
     } catch (error) {
       console.error("Error fetching companies:", error)
       toast({
@@ -86,7 +107,11 @@ export default function CompaniesPage() {
       }
 
       // Remove the company from the local state
-      setCompanies(companies.filter((company) => company.id !== id))
+      const updatedCompanies = companies.filter((company) => company.id !== id)
+      setCompanies(updatedCompanies)
+      setFilteredCompanies(
+        searchTerm.trim() === "" ? updatedCompanies : filteredCompanies.filter((company) => company.id !== id),
+      )
 
       toast({
         title: "Company Deleted",
@@ -116,7 +141,7 @@ export default function CompaniesPage() {
 
       // Prepare data for table
       const tableColumn = ["Name", "Contact Name", "Contact Email", "Contact Phone"]
-      const tableRows = companies.map((company) => [
+      const tableRows = filteredCompanies.map((company) => [
         company.name,
         company.contactName,
         company.contactEmail,
@@ -275,22 +300,29 @@ export default function CompaniesPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-3xl font-bold">Companies</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2 animate-fade-in">
+          <Building2 className="h-8 w-8 text-sp-yellow" />
+          Companies
+        </h1>
         <div className="flex flex-col sm:flex-row gap-2">
           <Link href="/companies/add">
-            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-yellow to-sp-red hover:from-sp-yellow/90 hover:to-sp-red/90">
+            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-yellow to-sp-red hover:from-sp-yellow/90 hover:to-sp-red/90 transition-all duration-300 hover:shadow-md">
               <Plus className="mr-2 h-4 w-4" />
               Add Company
             </Button>
           </Link>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={exportCompaniesToPDF}>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto transition-all duration-300 hover:shadow-md"
+            onClick={exportCompaniesToPDF}
+          >
             <Download className="mr-2 h-4 w-4" />
             Export All
           </Button>
         </div>
       </div>
 
-      <Card>
+      <Card className="transition-all duration-300 hover:shadow-md">
         <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
           <CardTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5 text-sp-yellow" />
@@ -298,18 +330,52 @@ export default function CompaniesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <SearchInput
+              placeholder="Search companies by name, address, or contact details..."
+              onChange={setSearchTerm}
+              className="max-w-md"
+            />
+          </div>
           {loading ? (
             <div className="flex items-center justify-center h-24">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-yellow border-t-transparent"></div>
             </div>
+          ) : filteredCompanies.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              {searchTerm ? (
+                <>
+                  <div className="text-4xl mb-3">🔍</div>
+                  <h3 className="text-xl font-medium text-gray-900">No matching companies found</h3>
+                  <p className="text-gray-500 mt-2">Try adjusting your search terms</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl mb-3">🏢</div>
+                  <h3 className="text-xl font-medium text-gray-900">No companies yet</h3>
+                  <p className="text-gray-500 mt-2">Add your first company to get started</p>
+                  <Link href="/companies/add" className="mt-4">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Your First Company
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
           ) : (
-            <DataTable columns={companyColumns} data={companies} />
+            <div className="animate-fade-in">
+              <DataTable columns={companyColumns} data={filteredCompanies} />
+              <p className="text-sm text-muted-foreground mt-2">
+                Showing {filteredCompanies.length} of {companies.length} companies
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="animate-fade-in-up">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>

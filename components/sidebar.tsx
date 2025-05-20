@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
-import { BarChart3, Building2, Home, Package, Settings, ShoppingBag, Users, Menu, X, Boxes } from "lucide-react"
+import { BarChart3, Building2, Home, Package, Settings, ShoppingBag, Users, Menu, X, Boxes, LogOut } from "lucide-react"
+import Cookies from "js-cookie"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { DoorAnimation } from "./door-animation"
 
 const menuItems = [
   {
@@ -53,9 +56,11 @@ const menuItems = [
 ]
 
 export function Sidebar() {
+  const router = useRouter()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   // Check if we're on mobile
   useEffect(() => {
@@ -76,8 +81,23 @@ export function Sidebar() {
     setIsMobileMenuOpen(false)
   }, [pathname])
 
+  const handleLogout = () => {
+    setIsLoggingOut(true)
+    // The actual logout and redirect will happen after animation completes
+  }
+
+  const completeLogout = () => {
+    // Remove authentication cookie
+    Cookies.remove("authenticated")
+    // Redirect to login page
+    router.push("/login")
+  }
+
   return (
     <>
+      {/* Door closing animation */}
+      <DoorAnimation isActive={isLoggingOut} onAnimationComplete={completeLogout} />
+
       {/* Mobile menu button */}
       <div className="fixed top-0 left-0 z-40 flex items-center p-4 md:hidden">
         <Button
@@ -140,14 +160,26 @@ export function Sidebar() {
             </nav>
           </div>
           <div className="border-t p-4">
-            <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-sp-blue to-sp-red text-white">
-                SP
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-sp-blue to-sp-red text-white">
+                  SP
+                </div>
+                <div>
+                  <p className="text-sm font-medium">SP IT Technologies</p>
+                  <p className="text-xs text-gray-500">Business Management</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium">SP IT Technologies</p>
-                <p className="text-xs text-gray-500">Business Management</p>
-              </div>
+
+              {/* Logout button */}
+              <Button
+                variant="outline"
+                className="w-full flex items-center gap-2 border-sp-red/20 text-sp-red hover:bg-sp-red/10 hover:text-sp-red"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Log Out
+              </Button>
             </div>
           </div>
         </div>

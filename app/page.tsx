@@ -15,6 +15,7 @@ import {
   Users,
   Wrench,
   Boxes,
+  AlertCircle,
 } from "lucide-react"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
@@ -84,8 +85,23 @@ type InventoryItem = {
   status: string
 }
 
-// Custom colors for charts
-const COLORS = ["#ED1C24", "#5B5DA8", "#F7941D", "#8884d8"]
+// Custom colors for charts - using a more accessible color palette
+const STATUS_COLORS = {
+  Complete: "#22c55e", // Green
+  Pending: "#f59e0b", // Amber
+  Working: "#3b82f6", // Blue
+  Assigned: "#8b5cf6", // Purple
+  Other: "#94a3b8", // Slate
+}
+
+// Company colors - using a colorblind-friendly palette
+const COMPANY_COLORS = [
+  "#003f5c", // Dark blue
+  "#58508d", // Purple
+  "#bc5090", // Pink
+  "#ff6361", // Red
+  "#ffa600", // Yellow
+]
 
 // Employee columns
 const employeeColumns: ColumnDef<Employee>[] = [
@@ -237,6 +253,12 @@ const taskColumns: ColumnDef<Task>[] = [
               <Wrench className="mr-2 h-4 w-4 text-blue-500" /> Working
             </div>
           )
+        case "Assigned":
+          return (
+            <div className="flex items-center">
+              <AlertCircle className="mr-2 h-4 w-4 text-purple-500" /> Assigned
+            </div>
+          )
         default:
           return (
             <div className="flex items-center">
@@ -252,6 +274,36 @@ const taskColumns: ColumnDef<Task>[] = [
     cell: ({ row }) => row.original.assignedTo?.name || "N/A",
   },
 ]
+
+// Custom tooltip for the Tasks by Company chart
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-2 border border-gray-200 rounded shadow-sm">
+        <p className="font-medium">{label}</p>
+        <p className="text-sm">{`Tasks: ${payload[0].value}`}</p>
+      </div>
+    )
+  }
+
+  return null
+}
+
+// Custom legend for the Task Status chart
+const CustomLegend = (props: any) => {
+  const { payload } = props
+
+  return (
+    <ul className="flex flex-wrap justify-center gap-4 mt-4">
+      {payload.map((entry: any, index: number) => (
+        <li key={`item-${index}`} className="flex items-center">
+          <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: entry.color }} />
+          <span className="text-xs">{entry.value}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -313,16 +365,34 @@ export default function Dashboard() {
 
   // Prepare data for charts
   const taskStatusData = [
-    { name: "Complete", value: Array.isArray(tasks) ? tasks.filter((task) => task.status === "Complete").length : 0 },
-    { name: "Pending", value: Array.isArray(tasks) ? tasks.filter((task) => task.status === "Pending").length : 0 },
-    { name: "Working", value: Array.isArray(tasks) ? tasks.filter((task) => task.status === "Working").length : 0 },
+    {
+      name: "Complete",
+      value: Array.isArray(tasks) ? tasks.filter((task) => task.status === "Complete").length : 0,
+      color: STATUS_COLORS.Complete,
+    },
+    {
+      name: "Pending",
+      value: Array.isArray(tasks) ? tasks.filter((task) => task.status === "Pending").length : 0,
+      color: STATUS_COLORS.Pending,
+    },
+    {
+      name: "Working",
+      value: Array.isArray(tasks) ? tasks.filter((task) => task.status === "Working").length : 0,
+      color: STATUS_COLORS.Working,
+    },
+    {
+      name: "Assigned",
+      value: Array.isArray(tasks) ? tasks.filter((task) => task.status === "Assigned").length : 0,
+      color: STATUS_COLORS.Assigned,
+    },
     {
       name: "Other",
       value: Array.isArray(tasks)
-        ? tasks.filter((task) => !["Complete", "Pending", "Working"].includes(task.status)).length
+        ? tasks.filter((task) => !["Complete", "Pending", "Working", "Assigned"].includes(task.status)).length
         : 0,
+      color: STATUS_COLORS.Other,
     },
-  ]
+  ].filter((item) => item.value > 0) // Only show statuses that have tasks
 
   const productCategoryData = Array.isArray(products)
     ? products.reduce(
@@ -341,9 +411,10 @@ export default function Dashboard() {
 
   const taskByCompanyData =
     Array.isArray(companies) && Array.isArray(tasks)
-      ? companies.map((company) => ({
+      ? companies.map((company, index) => ({
           name: company.name,
           tasks: tasks.filter((task) => task.companyId === company.id).length,
+          color: COMPANY_COLORS[index % COMPANY_COLORS.length],
         }))
       : []
 
@@ -357,6 +428,13 @@ export default function Dashboard() {
       value: Array.isArray(inventoryItems) ? inventoryItems.filter((item) => item.status === "SELL").length : 0,
     },
   ]
+
+  // Animation configuration for charts
+  const animationProps = {
+    animationBegin: 0,
+    animationDuration: 1500,
+    animationEasing: "ease-out",
+  }
 
   return (
     <div className="flex flex-col p-4 md:p-6">
@@ -402,7 +480,7 @@ export default function Dashboard() {
           {/* Dashboard Overview with Charts */}
           <TabsContent value="dashboard" className="mt-6">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-red/5 pb-2">
                   <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
                   <Users className="h-4 w-4 text-sp-red" />
@@ -412,7 +490,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">Team members in the organization</p>
                 </CardContent>
               </Card>
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-blue/5 pb-2">
                   <CardTitle className="text-sm font-medium">Total Products</CardTitle>
                   <Package className="h-4 w-4 text-sp-blue" />
@@ -422,7 +500,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">Products in the catalog</p>
                 </CardContent>
               </Card>
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-yellow/5 pb-2">
                   <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
                   <Building2 className="h-4 w-4 text-sp-yellow" />
@@ -432,7 +510,7 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">Client companies registered</p>
                 </CardContent>
               </Card>
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
                 <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50 pb-2">
                   <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
                   <ClockIcon className="h-4 w-4 text-green-600" />
@@ -446,15 +524,15 @@ export default function Dashboard() {
 
             <div className="mt-6 grid gap-6 md:grid-cols-2">
               {/* Task Status Chart */}
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
                 <CardHeader className="bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
-                  <CardTitle>Task Status</CardTitle>
+                  <CardTitle>Task Status 📊</CardTitle>
                   <CardDescription>Distribution of tasks by status</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart {...animationProps}>
                         <Pie
                           data={taskStatusData}
                           cx="50%"
@@ -466,11 +544,11 @@ export default function Dashboard() {
                           dataKey="value"
                         >
                           {taskStatusData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip />
-                        <Legend />
+                        <Legend content={<CustomLegend />} layout="horizontal" verticalAlign="bottom" align="center" />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -478,15 +556,15 @@ export default function Dashboard() {
               </Card>
 
               {/* Inventory Status Chart */}
-              <Card className="overflow-hidden">
+              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
                 <CardHeader className="bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
-                  <CardTitle>Inventory Status</CardTitle>
+                  <CardTitle>Inventory Status 📦</CardTitle>
                   <CardDescription>Distribution of inventory items by status</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
+                      <PieChart {...animationProps}>
                         <Pie
                           data={inventoryStatusData}
                           cx="50%"
@@ -510,9 +588,9 @@ export default function Dashboard() {
             </div>
 
             {/* Tasks by Company Chart */}
-            <Card className="mt-6 overflow-hidden">
+            <Card className="mt-6 overflow-hidden transition-all duration-300 hover:shadow-md">
               <CardHeader className="bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
-                <CardTitle>Tasks by Company</CardTitle>
+                <CardTitle>Tasks by Company 🏢</CardTitle>
                 <CardDescription>Number of tasks assigned to each company</CardDescription>
               </CardHeader>
               <CardContent className="p-6">
@@ -526,15 +604,37 @@ export default function Dashboard() {
                         left: 20,
                         bottom: 5,
                       }}
+                      {...animationProps}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis />
-                      <Tooltip />
+                      <Tooltip content={<CustomTooltip />} />
                       <Legend />
-                      <Bar dataKey="tasks" fill="#ED1C24" />
+                      <Bar dataKey="tasks">
+                        {taskByCompanyData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+
+                {/* Color legend for companies */}
+                <div className="mt-4 border-t pt-4">
+                  <h4 className="text-sm font-medium mb-2">Company Color Legend:</h4>
+                  <div className="flex flex-wrap gap-4">
+                    {taskByCompanyData.map((company, index) => (
+                      <div key={index} className="flex items-center">
+                        <div
+                          className="w-4 h-4 rounded mr-2"
+                          style={{ backgroundColor: company.color }}
+                          aria-hidden="true"
+                        />
+                        <span className="text-xs">{company.name}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -543,7 +643,7 @@ export default function Dashboard() {
           <TabsContent value="employees" className="mt-6">
             <Card className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
-                <CardTitle>Employees</CardTitle>
+                <CardTitle>Employees 👥</CardTitle>
                 <Link href="/employees/add">
                   <Button size="sm" className="bg-sp-red hover:bg-sp-red/90">
                     <Plus className="mr-2 h-4 w-4" />
@@ -566,7 +666,7 @@ export default function Dashboard() {
           <TabsContent value="products" className="mt-6">
             <Card className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
-                <CardTitle>Products</CardTitle>
+                <CardTitle>Products 📦</CardTitle>
                 <Link href="/products/add">
                   <Button size="sm" className="bg-sp-blue hover:bg-sp-blue/90">
                     <Plus className="mr-2 h-4 w-4" />
@@ -589,7 +689,7 @@ export default function Dashboard() {
           <TabsContent value="companies" className="mt-6">
             <Card className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
-                <CardTitle>Companies</CardTitle>
+                <CardTitle>Companies 🏢</CardTitle>
                 <Link href="/companies/add">
                   <Button size="sm" className="bg-sp-yellow hover:bg-sp-yellow/90">
                     <Plus className="mr-2 h-4 w-4" />
@@ -612,7 +712,7 @@ export default function Dashboard() {
           <TabsContent value="tasks" className="mt-6">
             <Card className="overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50">
-                <CardTitle>Tasks</CardTitle>
+                <CardTitle>Tasks ✅</CardTitle>
                 <div className="flex gap-2">
                   <Link href="/tasks/add">
                     <Button size="sm" className="bg-green-600 hover:bg-green-700">

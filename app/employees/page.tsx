@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { SearchInput } from "@/components/search-input"
 
 type Employee = {
   id: string
@@ -40,6 +41,8 @@ type Employee = {
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleteEmployeeId, setDeleteEmployeeId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -48,6 +51,22 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetchEmployees()
   }, [])
+
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredEmployees(employees)
+    } else {
+      const lowercasedSearch = searchTerm.toLowerCase()
+      const filtered = employees.filter(
+        (employee) =>
+          employee.name.toLowerCase().includes(lowercasedSearch) ||
+          employee.position.toLowerCase().includes(lowercasedSearch) ||
+          employee.email.toLowerCase().includes(lowercasedSearch) ||
+          employee.phone.toLowerCase().includes(lowercasedSearch),
+      )
+      setFilteredEmployees(filtered)
+    }
+  }, [searchTerm, employees])
 
   async function fetchEmployees() {
     try {
@@ -58,6 +77,7 @@ export default function EmployeesPage() {
       }
       const data = await response.json()
       setEmployees(data)
+      setFilteredEmployees(data)
     } catch (error) {
       console.error("Error fetching employees:", error)
       toast({
@@ -85,7 +105,11 @@ export default function EmployeesPage() {
       }
 
       // Remove the employee from the local state
-      setEmployees(employees.filter((employee) => employee.id !== id))
+      const updatedEmployees = employees.filter((employee) => employee.id !== id)
+      setEmployees(updatedEmployees)
+      setFilteredEmployees(
+        searchTerm.trim() === "" ? updatedEmployees : filteredEmployees.filter((employee) => employee.id !== id),
+      )
 
       toast({
         title: "Employee Deleted",
@@ -115,7 +139,12 @@ export default function EmployeesPage() {
 
       // Prepare data for table
       const tableColumn = ["Name", "Position", "Email", "Phone"]
-      const tableRows = employees.map((employee) => [employee.name, employee.position, employee.email, employee.phone])
+      const tableRows = filteredEmployees.map((employee) => [
+        employee.name,
+        employee.position,
+        employee.email,
+        employee.phone,
+      ])
 
       // Add table to document
       autoTable(doc, {
@@ -275,22 +304,29 @@ export default function EmployeesPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-3xl font-bold">Employees</h1>
+        <h1 className="text-3xl font-bold flex items-center gap-2 animate-fade-in">
+          <User className="h-8 w-8 text-sp-red" />
+          Employees
+        </h1>
         <div className="flex flex-col sm:flex-row gap-2">
           <Link href="/employees/add">
-            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90">
+            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90 transition-all duration-300 hover:shadow-md">
               <Plus className="mr-2 h-4 w-4" />
               Add Employee
             </Button>
           </Link>
-          <Button variant="outline" className="w-full sm:w-auto" onClick={exportEmployeesToPDF}>
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto transition-all duration-300 hover:shadow-md"
+            onClick={exportEmployeesToPDF}
+          >
             <Download className="mr-2 h-4 w-4" />
             Export All
           </Button>
         </div>
       </div>
 
-      <Card>
+      <Card className="transition-all duration-300 hover:shadow-md">
         <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5 text-sp-red" />
@@ -298,18 +334,52 @@ export default function EmployeesPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <SearchInput
+              placeholder="Search employees by name, position, email, or phone..."
+              onChange={setSearchTerm}
+              className="max-w-md"
+            />
+          </div>
           {loading ? (
             <div className="flex items-center justify-center h-24">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-red border-t-transparent"></div>
             </div>
+          ) : filteredEmployees.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              {searchTerm ? (
+                <>
+                  <div className="text-4xl mb-3">🔍</div>
+                  <h3 className="text-xl font-medium text-gray-900">No matching employees found</h3>
+                  <p className="text-gray-500 mt-2">Try adjusting your search terms</p>
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl mb-3">👥</div>
+                  <h3 className="text-xl font-medium text-gray-900">No employees yet</h3>
+                  <p className="text-gray-500 mt-2">Add your first employee to get started</p>
+                  <Link href="/employees/add" className="mt-4">
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Your First Employee
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
           ) : (
-            <DataTable columns={employeeColumns} data={employees} />
+            <div className="animate-fade-in">
+              <DataTable columns={employeeColumns} data={filteredEmployees} />
+              <p className="text-sm text-muted-foreground mt-2">
+                Showing {filteredEmployees.length} of {employees.length} employees
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="animate-fade-in-up">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>

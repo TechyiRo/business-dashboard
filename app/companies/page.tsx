@@ -6,6 +6,7 @@ import { ArrowUpDown, Building2, Download, Edit, FileText, Plus, Trash2 } from "
 import type { ColumnDef } from "@tanstack/react-table"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+import { ProtectedRoute } from "@/components/protected-route"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -40,7 +41,7 @@ type Company = {
   contactPhone: string
 }
 
-export default function CompaniesPage() {
+function CompaniesPageComponent() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [filteredCompanies, setFilteredCompanies] = useState<Company[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -407,5 +408,16 @@ export default function CompaniesPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+export default function CompaniesPage() {
+  return (
+    <ProtectedRoute>
+      <main className="container mx-auto p-4 md:p-6">
+        <h1 className="mb-6 text-2xl font-bold">Companies</h1>
+        <CompaniesPageComponent />
+      </main>
+    </ProtectedRoute>
   )
 }

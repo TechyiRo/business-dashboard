@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { BarChart3, Building2, Home, Package, Settings, ShoppingBag, Users, Menu, X, Boxes, LogOut } from "lucide-react"
-import Cookies from "js-cookie"
+import { useAuth } from "@/context/auth-context"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -53,14 +52,21 @@ const menuItems = [
     href: "/settings",
     icon: Settings,
   },
+  {
+    name: "Logout",
+    href: "#logout",
+    icon: LogOut,
+    className: "text-sp-red hover:bg-sp-red/10",
+    iconClassName: "text-sp-red",
+  },
 ]
 
 export function Sidebar() {
-  const router = useRouter()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const { logout } = useAuth()
 
   // Check if we're on mobile
   useEffect(() => {
@@ -83,14 +89,11 @@ export function Sidebar() {
 
   const handleLogout = () => {
     setIsLoggingOut(true)
-    // The actual logout and redirect will happen after animation completes
+    // The actual logout will happen after animation completes
   }
 
   const completeLogout = () => {
-    // Remove authentication cookie
-    Cookies.remove("authenticated")
-    // Redirect to login page
-    router.push("/login")
+    logout()
   }
 
   return (
@@ -119,7 +122,7 @@ export function Sidebar() {
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-30 w-64 transform bg-white shadow-lg transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
         <div className="flex h-full flex-col">
@@ -138,6 +141,7 @@ export function Sidebar() {
             <nav className="grid items-start px-4 text-sm font-medium">
               {menuItems.map((item) => {
                 const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href))
+                const isLogout = item.href === "#logout"
 
                 return (
                   <Link
@@ -145,13 +149,24 @@ export function Sidebar() {
                     href={item.href}
                     className={cn(
                       "group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all",
-                      isActive
+                      isActive && !isLogout
                         ? "bg-gradient-to-r from-sp-red to-sp-yellow text-white"
                         : "text-gray-600 hover:bg-gray-100",
+                      item.className,
                     )}
+                    onClick={(e) => {
+                      if (isLogout) {
+                        e.preventDefault()
+                        handleLogout()
+                      }
+                    }}
                   >
                     <item.icon
-                      className={cn("h-5 w-5", isActive ? "text-white" : "text-gray-400 group-hover:text-sp-red")}
+                      className={cn(
+                        "h-5 w-5",
+                        isActive && !isLogout ? "text-white" : "text-gray-400 group-hover:text-sp-red",
+                        item.iconClassName,
+                      )}
                     />
                     {item.name}
                   </Link>
@@ -160,26 +175,14 @@ export function Sidebar() {
             </nav>
           </div>
           <div className="border-t p-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-sp-blue to-sp-red text-white">
-                  SP
-                </div>
-                <div>
-                  <p className="text-sm font-medium">SP IT Technologies</p>
-                  <p className="text-xs text-gray-500">Business Management</p>
-                </div>
+            <div className="flex items-center gap-3 rounded-lg bg-gray-50 px-3 py-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-r from-sp-blue to-sp-red text-white">
+                SP
               </div>
-
-              {/* Logout button */}
-              <Button
-                variant="outline"
-                className="w-full flex items-center gap-2 border-sp-red/20 text-sp-red hover:bg-sp-red/10 hover:text-sp-red"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                Log Out
-              </Button>
+              <div>
+                <p className="text-sm font-medium">SP IT Technologies</p>
+                <p className="text-xs text-gray-500">Business Management</p>
+              </div>
             </div>
           </div>
         </div>

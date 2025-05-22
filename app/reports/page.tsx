@@ -18,6 +18,7 @@ import {
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ProtectedRoute } from "@/components/protected-route"
 
 // Custom colors for charts
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"]
@@ -118,131 +119,131 @@ export default function ReportsPage() {
         }))
       : []
 
-  if (loading) {
-    return (
-      <div className="container mx-auto p-6 flex items-center justify-center h-screen">
-        <p>Loading reports...</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Reports</h1>
+    <ProtectedRoute>
+      <main className="container mx-auto p-4 md:p-6">
+        <h1 className="mb-6 text-2xl font-bold">Reports</h1>
 
-      <Tabs defaultValue="task-status">
-        <TabsList className="mb-6">
-          <TabsTrigger value="task-status">Task Status</TabsTrigger>
-          <TabsTrigger value="product-categories">Product Categories</TabsTrigger>
-          <TabsTrigger value="company-tasks">Tasks by Company</TabsTrigger>
-        </TabsList>
+        {loading ? (
+          <div className="flex items-center justify-center h-screen">
+            <p>Loading reports...</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="task-status">
+            <TabsList className="mb-6">
+              <TabsTrigger value="task-status">Task Status</TabsTrigger>
+              <TabsTrigger value="product-categories">Product Categories</TabsTrigger>
+              <TabsTrigger value="company-tasks">Tasks by Company</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="task-status">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                <CardTitle>Task Status Distribution</CardTitle>
-              </div>
-              <CardDescription>Overview of tasks by their current status</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Pie
-                      data={taskStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {taskStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            <TabsContent value="task-status">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <PieChart className="h-5 w-5" />
+                    <CardTitle>Task Status Distribution</CardTitle>
+                  </div>
+                  <CardDescription>Overview of tasks by their current status</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={taskStatusData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {taskStatusData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="product-categories">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <PieChart className="h-5 w-5" />
-                <CardTitle>Product Categories</CardTitle>
-              </div>
-              <CardDescription>Distribution of products by category</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Pie
-                      data={productCategoryData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {productCategoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            <TabsContent value="product-categories">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <PieChart className="h-5 w-5" />
+                    <CardTitle>Product Categories</CardTitle>
+                  </div>
+                  <CardDescription>Distribution of products by category</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={productCategoryData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={true}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {productCategoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="company-tasks">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                <CardTitle>Tasks by Company</CardTitle>
-              </div>
-              <CardDescription>Number of tasks assigned to each company</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={taskByCompanyData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="tasks" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+            <TabsContent value="company-tasks">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    <CardTitle>Tasks by Company</CardTitle>
+                  </div>
+                  <CardDescription>Number of tasks assigned to each company</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={taskByCompanyData}
+                        margin={{
+                          top: 5,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="tasks" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+      </main>
+    </ProtectedRoute>
   )
 }

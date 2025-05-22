@@ -6,6 +6,7 @@ import { ArrowUpDown, Download, Edit, FileText, Plus, Trash2, User } from "lucid
 import type { ColumnDef } from "@tanstack/react-table"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
+import { ProtectedRoute } from "@/components/protected-route"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,7 +40,7 @@ type Employee = {
   phone: string
 }
 
-export default function EmployeesPage() {
+function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -302,114 +303,119 @@ export default function EmployeesPage() {
   ]
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-3xl font-bold flex items-center gap-2 animate-fade-in">
-          <User className="h-8 w-8 text-sp-red" />
-          Employees
-        </h1>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Link href="/employees/add">
-            <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90 transition-all duration-300 hover:shadow-md">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Employee
-            </Button>
-          </Link>
-          <Button
-            variant="outline"
-            className="w-full sm:w-auto transition-all duration-300 hover:shadow-md"
-            onClick={exportEmployeesToPDF}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export All
-          </Button>
-        </div>
-      </div>
-
-      <Card className="transition-all duration-300 hover:shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-sp-red" />
+    <ProtectedRoute>
+      <main className="container mx-auto p-4 md:p-6">
+        <h1 className="mb-6 text-2xl font-bold">Employees</h1>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-2 animate-fade-in">
+            <User className="h-8 w-8 text-sp-red" />
             Employee List
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <SearchInput
-              placeholder="Search employees by name, position, email, or phone..."
-              onChange={setSearchTerm}
-              className="max-w-md"
-            />
           </div>
-          {loading ? (
-            <div className="flex items-center justify-center h-24">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-red border-t-transparent"></div>
-            </div>
-          ) : filteredEmployees.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              {searchTerm ? (
-                <>
-                  <div className="text-4xl mb-3">🔍</div>
-                  <h3 className="text-xl font-medium text-gray-900">No matching employees found</h3>
-                  <p className="text-gray-500 mt-2">Try adjusting your search terms</p>
-                </>
-              ) : (
-                <>
-                  <div className="text-4xl mb-3">👥</div>
-                  <h3 className="text-xl font-medium text-gray-900">No employees yet</h3>
-                  <p className="text-gray-500 mt-2">Add your first employee to get started</p>
-                  <Link href="/employees/add" className="mt-4">
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Your First Employee
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className="animate-fade-in">
-              <DataTable columns={employeeColumns} data={filteredEmployees} />
-              <p className="text-sm text-muted-foreground mt-2">
-                Showing {filteredEmployees.length} of {employees.length} employees
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link href="/employees/add">
+              <Button className="w-full sm:w-auto bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90 transition-all duration-300 hover:shadow-md">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Employee
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto transition-all duration-300 hover:shadow-md"
+              onClick={exportEmployeesToPDF}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export All
+            </Button>
+          </div>
+        </div>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="animate-fade-in-up">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteError ? (
-                <div className="text-red-500">{deleteError}</div>
-              ) : (
-                "This action cannot be undone. This will permanently delete the employee and all associated data."
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            {!deleteError && (
-              <AlertDialogAction
-                onClick={async () => {
-                  if (deleteEmployeeId) {
-                    const success = await deleteEmployee(deleteEmployeeId)
-                    if (success) {
-                      setDeleteEmployeeId(null)
-                    }
-                  }
-                }}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Delete
-              </AlertDialogAction>
+        <Card className="transition-all duration-300 hover:shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-sp-red" />
+              Employee List
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <SearchInput
+                placeholder="Search employees by name, position, email, or phone..."
+                onChange={setSearchTerm}
+                className="max-w-md"
+              />
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center h-24">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-red border-t-transparent"></div>
+              </div>
+            ) : filteredEmployees.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                {searchTerm ? (
+                  <>
+                    <div className="text-4xl mb-3">🔍</div>
+                    <h3 className="text-xl font-medium text-gray-900">No matching employees found</h3>
+                    <p className="text-gray-500 mt-2">Try adjusting your search terms</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-4xl mb-3">👥</div>
+                    <h3 className="text-xl font-medium text-gray-900">No employees yet</h3>
+                    <p className="text-gray-500 mt-2">Add your first employee to get started</p>
+                    <Link href="/employees/add" className="mt-4">
+                      <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Your First Employee
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="animate-fade-in">
+                <DataTable columns={employeeColumns} data={filteredEmployees} />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Showing {filteredEmployees.length} of {employees.length} employees
+                </p>
+              </div>
             )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+          </CardContent>
+        </Card>
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent className="animate-fade-in-up">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {deleteError ? (
+                  <div className="text-red-500">{deleteError}</div>
+                ) : (
+                  "This action cannot be undone. This will permanently delete the employee and all associated data."
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {!deleteError && (
+                <AlertDialogAction
+                  onClick={async () => {
+                    if (deleteEmployeeId) {
+                      const success = await deleteEmployee(deleteEmployeeId)
+                      if (success) {
+                        setDeleteEmployeeId(null)
+                      }
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete
+                </AlertDialogAction>
+              )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </main>
+    </ProtectedRoute>
   )
 }
+
+export default EmployeesPage

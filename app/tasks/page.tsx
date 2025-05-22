@@ -44,6 +44,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { SearchInput } from "@/components/search-input"
+import { ProtectedRoute } from "@/components/protected-route"
 
 type Task = {
   id: string
@@ -64,7 +65,7 @@ type Task = {
   }
 }
 
-export default function TasksPage() {
+function TasksPageComponent() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -511,5 +512,13 @@ export default function TasksPage() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+export default function TasksPage() {
+  return (
+    <ProtectedRoute>
+      <TasksPageComponent />
+    </ProtectedRoute>
   )
 }

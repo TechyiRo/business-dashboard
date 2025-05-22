@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
-// This is a simplified middleware for demo purposes
-// In a real application, you would use a proper authentication system
 export function middleware(request: NextRequest) {
   // Check if the user is accessing a protected route
   const isProtectedRoute = !request.nextUrl.pathname.startsWith("/login")
@@ -15,14 +13,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url))
   }
 
-  // If already authenticated and trying to access login page
-  if (request.nextUrl.pathname === "/login" && isAuthenticated) {
-    return NextResponse.redirect(new URL("/", request.url))
-  }
-
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|images).*)"],
 }

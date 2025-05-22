@@ -5,6 +5,7 @@ import Link from "next/link"
 import { ArrowUpDown, Edit, Plus, Trash } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type { ColumnDef } from "@tanstack/react-table"
+import { ProtectedRoute } from "@/components/protected-route"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -33,7 +34,7 @@ type InventoryItem = {
   }
 }
 
-export default function InventoryPage() {
+function InventoryComponent() {
   const router = useRouter()
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -227,5 +228,16 @@ export default function InventoryPage() {
         </Card>
       )}
     </div>
+  )
+}
+
+export default function InventoryPage() {
+  return (
+    <ProtectedRoute>
+      <main className="container mx-auto p-4 md:p-6">
+        <h1 className="mb-6 text-2xl font-bold">Product Inventory</h1>
+        <InventoryComponent />
+      </main>
+    </ProtectedRoute>
   )
 }

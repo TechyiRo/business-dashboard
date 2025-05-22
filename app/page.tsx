@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { ProtectedRoute } from "@/components/protected-route"
 import {
   ArrowUpDown,
   Building2,
@@ -305,7 +306,7 @@ const CustomLegend = (props: any) => {
   )
 }
 
-export default function Dashboard() {
+const DashboardPage = () => {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [employees, setEmployees] = useState<Employee[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -437,310 +438,321 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex flex-col p-4 md:p-6">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-3">
-          <div className="relative h-12 w-12 overflow-hidden rounded-lg">
-            <Image
-              src="/images/sp-it-logo.png"
-              alt="SP IT Technologies"
-              fill
-              style={{ objectFit: "contain" }}
-              priority
-            />
-          </div>
-          <h1 className="text-2xl font-bold md:text-3xl">SP IT Technologies</h1>
-        </div>
-        <Link href="/inventory">
-          <Button className="w-full bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90 sm:w-auto">
-            <Boxes className="mr-2 h-4 w-4" />
-            PRODUCT INVENTORY
-          </Button>
-        </Link>
-      </div>
-
-      {dbError && <DbConnectionError />}
-
-      <div className="mt-6">
-        <Tabs defaultValue="dashboard" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="employees">Employees</TabsTrigger>
-            <TabsTrigger value="products" className="hidden md:block">
-              Products
-            </TabsTrigger>
-            <TabsTrigger value="companies" className="hidden md:block">
-              Companies
-            </TabsTrigger>
-            <TabsTrigger value="tasks" className="hidden md:block">
-              Tasks
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Dashboard Overview with Charts */}
-          <TabsContent value="dashboard" className="mt-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-red/5 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-                  <Users className="h-4 w-4 text-sp-red" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{employees.length}</div>
-                  <p className="text-xs text-muted-foreground">Team members in the organization</p>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-blue/5 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-                  <Package className="h-4 w-4 text-sp-blue" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{products.length}</div>
-                  <p className="text-xs text-muted-foreground">Products in the catalog</p>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-yellow/5 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
-                  <Building2 className="h-4 w-4 text-sp-yellow" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{companies.length}</div>
-                  <p className="text-xs text-muted-foreground">Client companies registered</p>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
-                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
-                  <ClockIcon className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{tasks.filter((task) => task.status !== "Complete").length}</div>
-                  <p className="text-xs text-muted-foreground">Tasks still in progress</p>
-                </CardContent>
-              </Card>
+    <ProtectedRoute>
+      <main className="container mx-auto p-4 md:p-6">
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <div className="relative h-12 w-12 overflow-hidden rounded-lg">
+              <Image
+                src="/images/sp-it-logo.png"
+                alt="SP IT Technologies"
+                fill
+                style={{ objectFit: "contain" }}
+                priority
+              />
             </div>
+            <h1 className="text-2xl font-bold md:text-3xl">SP IT Technologies</h1>
+          </div>
+          <Link href="/inventory">
+            <Button className="w-full bg-gradient-to-r from-sp-red to-sp-yellow hover:from-sp-red/90 hover:to-sp-yellow/90 sm:w-auto">
+              <Boxes className="mr-2 h-4 w-4" />
+              PRODUCT INVENTORY
+            </Button>
+          </Link>
+        </div>
 
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
-              {/* Task Status Chart */}
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
-                <CardHeader className="bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
-                  <CardTitle>Task Status 📊</CardTitle>
-                  <CardDescription>Distribution of tasks by status</CardDescription>
+        {dbError && <DbConnectionError />}
+
+        <div className="mt-6">
+          <Tabs defaultValue="dashboard" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="employees">Employees</TabsTrigger>
+              <TabsTrigger value="products" className="hidden md:block">
+                Products
+              </TabsTrigger>
+              <TabsTrigger value="companies" className="hidden md:block">
+                Companies
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="hidden md:block">
+                Tasks
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Dashboard Overview with Charts */}
+            <TabsContent value="dashboard" className="mt-6">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
+                  <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-red/5 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
+                    <Users className="h-4 w-4 text-sp-red" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{employees.length}</div>
+                    <p className="text-xs text-muted-foreground">Team members in the organization</p>
+                  </CardContent>
+                </Card>
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
+                  <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-blue/5 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+                    <Package className="h-4 w-4 text-sp-blue" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{products.length}</div>
+                    <p className="text-xs text-muted-foreground">Products in the catalog</p>
+                  </CardContent>
+                </Card>
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
+                  <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-yellow/5 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Companies</CardTitle>
+                    <Building2 className="h-4 w-4 text-sp-yellow" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{companies.length}</div>
+                    <p className="text-xs text-muted-foreground">Client companies registered</p>
+                  </CardContent>
+                </Card>
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
+                  <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Tasks</CardTitle>
+                    <ClockIcon className="h-4 w-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {tasks.filter((task) => task.status !== "Complete").length}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Tasks still in progress</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="mt-6 grid gap-6 md:grid-cols-2">
+                {/* Task Status Chart */}
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
+                  <CardHeader className="bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
+                    <CardTitle>Task Status 📊</CardTitle>
+                    <CardDescription>Distribution of tasks by status</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart {...animationProps}>
+                          <Pie
+                            data={taskStatusData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={true}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {taskStatusData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend
+                            content={<CustomLegend />}
+                            layout="horizontal"
+                            verticalAlign="bottom"
+                            align="center"
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Inventory Status Chart */}
+                <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
+                  <CardHeader className="bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
+                    <CardTitle>Inventory Status 📦</CardTitle>
+                    <CardDescription>Distribution of inventory items by status</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart {...animationProps}>
+                          <Pie
+                            data={inventoryStatusData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={true}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            <Cell fill="#5B5DA8" /> {/* RENT - Blue */}
+                            <Cell fill="#F7941D" /> {/* SELL - Yellow */}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Tasks by Company Chart */}
+              <Card className="mt-6 overflow-hidden transition-all duration-300 hover:shadow-md">
+                <CardHeader className="bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
+                  <CardTitle>Tasks by Company 🏢</CardTitle>
+                  <CardDescription>Number of tasks assigned to each company</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart {...animationProps}>
-                        <Pie
-                          data={taskStatusData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={true}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {taskStatusData.map((entry, index) => (
+                      <BarChart
+                        data={taskByCompanyData}
+                        margin={{
+                          top: 5,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                        {...animationProps}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                        <Bar dataKey="tasks">
+                          {taskByCompanyData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend content={<CustomLegend />} layout="horizontal" verticalAlign="bottom" align="center" />
-                      </PieChart>
+                        </Bar>
+                      </BarChart>
                     </ResponsiveContainer>
+                  </div>
+
+                  {/* Color legend for companies */}
+                  <div className="mt-4 border-t pt-4">
+                    <h4 className="text-sm font-medium mb-2">Company Color Legend:</h4>
+                    <div className="flex flex-wrap gap-4">
+                      {taskByCompanyData.map((company, index) => (
+                        <div key={index} className="flex items-center">
+                          <div
+                            className="w-4 h-4 rounded mr-2"
+                            style={{ backgroundColor: company.color }}
+                            aria-hidden="true"
+                          />
+                          <span className="text-xs">{company.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              {/* Inventory Status Chart */}
-              <Card className="overflow-hidden transition-all duration-300 hover:shadow-md">
-                <CardHeader className="bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
-                  <CardTitle>Inventory Status 📦</CardTitle>
-                  <CardDescription>Distribution of inventory items by status</CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart {...animationProps}>
-                        <Pie
-                          data={inventoryStatusData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={true}
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          <Cell fill="#5B5DA8" /> {/* RENT - Blue */}
-                          <Cell fill="#F7941D" /> {/* SELL - Yellow */}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Tasks by Company Chart */}
-            <Card className="mt-6 overflow-hidden transition-all duration-300 hover:shadow-md">
-              <CardHeader className="bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
-                <CardTitle>Tasks by Company 🏢</CardTitle>
-                <CardDescription>Number of tasks assigned to each company</CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={taskByCompanyData}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                      {...animationProps}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Bar dataKey="tasks">
-                        {taskByCompanyData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Color legend for companies */}
-                <div className="mt-4 border-t pt-4">
-                  <h4 className="text-sm font-medium mb-2">Company Color Legend:</h4>
-                  <div className="flex flex-wrap gap-4">
-                    {taskByCompanyData.map((company, index) => (
-                      <div key={index} className="flex items-center">
-                        <div
-                          className="w-4 h-4 rounded mr-2"
-                          style={{ backgroundColor: company.color }}
-                          aria-hidden="true"
-                        />
-                        <span className="text-xs">{company.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="employees" className="mt-6">
-            <Card className="overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
-                <CardTitle>Employees 👥</CardTitle>
-                <Link href="/employees/add">
-                  <Button size="sm" className="bg-sp-red hover:bg-sp-red/90">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Employee
-                  </Button>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center h-24">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-red border-t-transparent"></div>
-                  </div>
-                ) : (
-                  <DataTable columns={employeeColumns} data={employees} />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="products" className="mt-6">
-            <Card className="overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
-                <CardTitle>Products 📦</CardTitle>
-                <Link href="/products/add">
-                  <Button size="sm" className="bg-sp-blue hover:bg-sp-blue/90">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Product
-                  </Button>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center h-24">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-blue border-t-transparent"></div>
-                  </div>
-                ) : (
-                  <DataTable columns={productColumns} data={products} />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="companies" className="mt-6">
-            <Card className="overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
-                <CardTitle>Companies 🏢</CardTitle>
-                <Link href="/companies/add">
-                  <Button size="sm" className="bg-sp-yellow hover:bg-sp-yellow/90">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Company
-                  </Button>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center h-24">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-yellow border-t-transparent"></div>
-                  </div>
-                ) : (
-                  <DataTable columns={companyColumns} data={companies} />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="tasks" className="mt-6">
-            <Card className="overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50">
-                <CardTitle>Tasks ✅</CardTitle>
-                <div className="flex gap-2">
-                  <Link href="/tasks/add">
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
+            <TabsContent value="employees" className="mt-6">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-red/10 to-sp-blue/10">
+                  <CardTitle>Employees 👥</CardTitle>
+                  <Link href="/employees/add">
+                    <Button size="sm" className="bg-sp-red hover:bg-sp-red/90">
                       <Plus className="mr-2 h-4 w-4" />
-                      Add Task
+                      Add Employee
                     </Button>
                   </Link>
-                  <Link href="/tasks/complete">
-                    <Button size="sm" variant="outline">
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Complete Task
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-red border-t-transparent"></div>
+                    </div>
+                  ) : (
+                    <DataTable columns={employeeColumns} data={employees} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="products" className="mt-6">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-blue/10 to-sp-yellow/10">
+                  <CardTitle>Products 📦</CardTitle>
+                  <Link href="/products/add">
+                    <Button size="sm" className="bg-sp-blue hover:bg-sp-blue/90">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Product
                     </Button>
                   </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center h-24">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-blue border-t-transparent"></div>
+                    </div>
+                  ) : (
+                    <DataTable columns={productColumns} data={products} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="companies" className="mt-6">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-sp-yellow/10 to-sp-red/10">
+                  <CardTitle>Companies 🏢</CardTitle>
+                  <Link href="/companies/add">
+                    <Button size="sm" className="bg-sp-yellow hover:bg-sp-yellow/90">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Company
+                    </Button>
+                  </Link>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-sp-yellow border-t-transparent"></div>
+                    </div>
+                  ) : (
+                    <DataTable columns={companyColumns} data={companies} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="mt-6">
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-100 to-green-50">
+                  <CardTitle>Tasks ✅</CardTitle>
+                  <div className="flex gap-2">
+                    <Link href="/tasks/add">
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Task
+                      </Button>
+                    </Link>
+                    <Link href="/tasks/complete">
+                      <Button size="sm" variant="outline">
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Complete Task
+                      </Button>
+                    </Link>
                   </div>
-                ) : (
-                  <DataTable columns={taskColumns} data={tasks} />
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="flex items-center justify-center h-24">
+                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-green-500 border-t-transparent"></div>
+                    </div>
+                  ) : (
+                    <DataTable columns={taskColumns} data={tasks} />
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
+    </ProtectedRoute>
   )
 }
+
+export default DashboardPage

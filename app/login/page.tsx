@@ -74,7 +74,7 @@ export default function LoginPage() {
       <AnimatedBackground />
 
       <div className="flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-md transform rounded-xl bg-white/90 p-8 shadow-xl border border-white/20 transition-all duration-500 hover:scale-[1.01]">
+        <div className="w-full max-w-md transform rounded-xl bg-white/90 p-8 shadow-xl border border-white/20 transition-all duration-500 hover:scale-[1.05]">
           <div className="mb-8 text-center">
             <div className="flex justify-center mb-2">
               <div className="rounded-full bg-primary/10 p-2 animate-pulse">

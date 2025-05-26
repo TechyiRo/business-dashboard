@@ -15,6 +15,7 @@ import {
   FileText,
   BarChart,
   Users,
+  CalendarDays,
 } from "lucide-react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { jsPDF } from "jspdf"
@@ -60,6 +61,8 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { WorkCalendar } from "@/components/work-calendar"
+import { DayView } from "@/components/day-view"
 import { workTags } from "@/lib/data"
 
 // Define work update type
@@ -133,7 +136,9 @@ function WorkUpdatesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [employees, setEmployees] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
-  const [activeTab, setActiveTab] = useState("list")
+  const [activeTab, setActiveTab] = useState("calendar")
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDateUpdates, setSelectedDateUpdates] = useState<WorkUpdate[]>([])
 
   useEffect(() => {
     fetchWorkUpdates()
@@ -312,6 +317,35 @@ function WorkUpdatesPage() {
             },
             createdAt: new Date(Date.now() - 345600000).toISOString(),
             updatedAt: new Date(Date.now() - 345600000).toISOString(),
+          },
+          // Add more sample data for different dates
+          {
+            id: "6",
+            date: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
+            workName: "Email Server Migration",
+            workDetail:
+              "<p>Migrated email server to new infrastructure. <span style='color: #22c55e;'>Zero downtime migration</span> completed successfully.</p>",
+            workDuration: 600, // 10 hours
+            tags: ["Server", "Security"],
+            employeeId: "emp1",
+            companyId: "comp1",
+            employee: {
+              id: "emp1",
+              name: "Rohidas Shinde",
+              position: "Network Administrator",
+              email: "rohidas.shinde@example.com",
+              phone: "123-456-7890",
+            },
+            company: {
+              id: "comp1",
+              name: "TechCorp Solutions",
+              address: "123 Tech Park, Mumbai",
+              contactName: "Rajesh Kumar",
+              contactEmail: "rajesh.kumar@techcorp.com",
+              contactPhone: "456-789-0123",
+            },
+            createdAt: new Date(Date.now() - 432000000).toISOString(),
+            updatedAt: new Date(Date.now() - 432000000).toISOString(),
           },
         ]
 
@@ -542,6 +576,12 @@ function WorkUpdatesPage() {
     }
   }
 
+  // Handle date selection from calendar
+  const handleDateSelect = (date: Date, updates: WorkUpdate[]) => {
+    setSelectedDate(date)
+    setSelectedDateUpdates(updates)
+  }
+
   // Prepare data for charts
   const workTagData = (() => {
     const tagCounts: Record<string, number> = {}
@@ -700,6 +740,13 @@ function WorkUpdatesPage() {
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
+                <Link href={`/work-updates/view/${workUpdate.id}`}>
+                  <FileText className="mr-2 h-4 w-4 text-green-600" />
+                  View Details
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
                 <Link href={`/work-updates/edit/${workUpdate.id}`}>
                   <Edit className="mr-2 h-4 w-4 text-blue-500" />
                   Edit
@@ -753,17 +800,69 @@ function WorkUpdatesPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="list" value={activeTab} onValueChange={setActiveTab}>
+      {/* Employee Filter */}
+      <div className="mb-6 flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by employee" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Employees</SelectItem>
+              {employees.map((employee) => (
+                <SelectItem key={employee.id} value={employee.id}>
+                  {employee.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <SearchInput placeholder="Search work updates..." value={searchTerm} onChange={setSearchTerm} />
+      </div>
+
+      <Tabs defaultValue="calendar" value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
+          <TabsTrigger value="calendar">
+            <CalendarDays className="mr-2 h-4 w-4" />📅 Calendar View
+          </TabsTrigger>
           <TabsTrigger value="list">
-            <FileText className="mr-2 h-4 w-4" />
-            List View
+            <FileText className="mr-2 h-4 w-4" />📋 List View
           </TabsTrigger>
           <TabsTrigger value="charts">
-            <BarChart className="mr-2 h-4 w-4" />
-            Analytics
+            <BarChart className="mr-2 h-4 w-4" />📊 Analytics
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="calendar">
+          {loading ? (
+            <div className="flex items-center justify-center h-96">
+              <div className="text-center">
+                <div className="h-12 w-12 animate-spin rounded-full border-4 border-sp-red border-t-transparent mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading calendar...</p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <WorkCalendar
+                workUpdates={workUpdates}
+                selectedEmployee={selectedEmployee}
+                onDateSelect={handleDateSelect}
+              />
+
+              {selectedDate && (
+                <DayView
+                  selectedDate={selectedDate}
+                  workUpdates={selectedDateUpdates}
+                  onClose={() => {
+                    setSelectedDate(null)
+                    setSelectedDateUpdates([])
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </TabsContent>
 
         <TabsContent value="list">
           <Card>
@@ -772,26 +871,6 @@ function WorkUpdatesPage() {
                 <Calendar className="h-5 w-5" />
                 Work Updates ({filteredWorkUpdates.length})
               </CardTitle>
-              <div className="flex gap-2 items-center">
-                {/* Employee Filter */}
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Employees</SelectItem>
-                      {employees.map((employee) => (
-                        <SelectItem key={employee.id} value={employee.id}>
-                          {employee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <SearchInput placeholder="Search work updates..." value={searchTerm} onChange={setSearchTerm} />
-              </div>
             </CardHeader>
             <CardContent>
               {loading ? (

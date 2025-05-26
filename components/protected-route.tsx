@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { Sidebar } from "@/components/sidebar"
@@ -10,14 +9,21 @@ import { Sidebar } from "@/components/sidebar"
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration issues
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login")
+    if (mounted && !isLoading && !isAuthenticated) {
+      router.replace("/login")
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [mounted, isAuthenticated, isLoading, router])
 
-  if (isLoading) {
+  // Show loading while checking auth or not mounted
+  if (!mounted || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-2">
@@ -28,6 +34,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     )
   }
 
+  // Don't render protected content if not authenticated
   if (!isAuthenticated) {
     return null
   }

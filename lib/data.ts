@@ -50,27 +50,62 @@ export type WorkDetail = {
   steps: string[]
 }
 
+// Updated work tags with new IT-focused tags
+export const workTags = [
+  { name: "Firewall", color: "bg-red-500 hover:bg-red-600", badge: "bg-red-100 text-red-800 hover:bg-red-200" },
+  { name: "Switch", color: "bg-blue-500 hover:bg-blue-600", badge: "bg-blue-100 text-blue-800 hover:bg-blue-200" },
+  { name: "Server", color: "bg-green-500 hover:bg-green-600", badge: "bg-green-100 text-green-800 hover:bg-green-200" },
+  {
+    name: "Domain",
+    color: "bg-purple-500 hover:bg-purple-600",
+    badge: "bg-purple-100 text-purple-800 hover:bg-purple-200",
+  },
+  {
+    name: "ADDC",
+    color: "bg-yellow-500 hover:bg-yellow-600",
+    badge: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+  },
+  {
+    name: "Wi-Fi",
+    color: "bg-indigo-500 hover:bg-indigo-600",
+    badge: "bg-indigo-100 text-indigo-800 hover:bg-indigo-200",
+  },
+  { name: "AP", color: "bg-pink-500 hover:bg-pink-600", badge: "bg-pink-100 text-pink-800 hover:bg-pink-200" },
+  {
+    name: "Networking Work",
+    color: "bg-teal-500 hover:bg-teal-600",
+    badge: "bg-teal-100 text-teal-800 hover:bg-teal-200",
+  },
+  {
+    name: "Security",
+    color: "bg-orange-500 hover:bg-orange-600",
+    badge: "bg-orange-100 text-orange-800 hover:bg-orange-200",
+  },
+  { name: "Visit", color: "bg-cyan-500 hover:bg-cyan-600", badge: "bg-cyan-100 text-cyan-800 hover:bg-cyan-200" },
+  { name: "Other", color: "bg-gray-500 hover:bg-gray-600", badge: "bg-gray-100 text-gray-800 hover:bg-gray-200" },
+]
+
 // Sample data
 export const employees: Employee[] = [
   {
     id: "emp1",
-    name: "John Doe",
-    position: "Software Developer",
-    email: "john.doe@example.com",
+    name: "Rohidas Shinde",
+    position: "Network Administrator",
+    email: "rohidas.shinde@example.com",
     phone: "123-456-7890",
   },
   {
     id: "emp2",
-    name: "Jane Smith",
-    position: "Project Manager",
-    email: "jane.smith@example.com",
+    name: "Priya Sharma",
+    position: "System Administrator",
+    email: "priya.sharma@example.com",
     phone: "234-567-8901",
   },
   {
     id: "emp3",
-    name: "Robert Johnson",
-    position: "UI/UX Designer",
-    email: "robert.johnson@example.com",
+    name: "Amit Patil",
+    position: "Security Specialist",
+    email: "amit.patil@example.com",
     phone: "345-678-9012",
   },
 ]
@@ -78,49 +113,49 @@ export const employees: Employee[] = [
 export const products: Product[] = [
   {
     id: "prod1",
-    name: "Website Development",
-    category: "Digital Services",
+    name: "Network Infrastructure",
+    category: "IT Services",
   },
   {
     id: "prod2",
-    name: "Mobile App",
-    category: "Software",
+    name: "Security Solutions",
+    category: "Security",
   },
   {
     id: "prod3",
-    name: "SEO Package",
-    category: "Marketing",
+    name: "Server Management",
+    category: "IT Services",
   },
 ]
 
 export const companies: Company[] = [
   {
     id: "comp1",
-    name: "Acme Corporation",
-    address: "123 Main St, Anytown, USA",
+    name: "TechCorp Solutions",
+    address: "123 Tech Park, Mumbai, India",
     contact: {
-      name: "Michael Brown",
-      email: "michael.brown@acme.com",
+      name: "Rajesh Kumar",
+      email: "rajesh.kumar@techcorp.com",
       phone: "456-789-0123",
     },
   },
   {
     id: "comp2",
-    name: "TechStart Inc.",
-    address: "456 Tech Blvd, Innovation City, USA",
+    name: "InfoSys Ltd",
+    address: "456 Business District, Pune, India",
     contact: {
-      name: "Sarah Williams",
-      email: "sarah.williams@techstart.com",
+      name: "Sunita Desai",
+      email: "sunita.desai@infosys.com",
       phone: "567-890-1234",
     },
   },
   {
     id: "comp3",
-    name: "Global Enterprises",
-    address: "789 Global Ave, Metropolis, USA",
+    name: "Digital Enterprises",
+    address: "789 IT Hub, Bangalore, India",
     contact: {
-      name: "David Miller",
-      email: "david.miller@global.com",
+      name: "Vikram Singh",
+      email: "vikram.singh@digital.com",
       phone: "678-901-2345",
     },
   },
@@ -129,9 +164,9 @@ export const companies: Company[] = [
 export const tasks: Task[] = [
   {
     id: "task1",
-    name: "Website Redesign",
-    details: "Redesign the company website with new branding",
-    productId: "prod1",
+    name: "Firewall Configuration",
+    details: "Configure firewall rules for new network segment",
+    productId: "prod2",
     companyId: "comp1",
     date: "2023-05-15",
     assignedById: "emp2",
@@ -140,9 +175,9 @@ export const tasks: Task[] = [
   },
   {
     id: "task2",
-    name: "Mobile App Development",
-    details: "Develop a new mobile app for client",
-    productId: "prod2",
+    name: "Server Maintenance",
+    details: "Perform routine maintenance on production servers",
+    productId: "prod3",
     companyId: "comp2",
     date: "2023-06-01",
     assignedById: "emp2",
@@ -151,9 +186,9 @@ export const tasks: Task[] = [
   },
   {
     id: "task3",
-    name: "SEO Optimization",
-    details: "Optimize website for search engines",
-    productId: "prod3",
+    name: "Network Security Audit",
+    details: "Conduct comprehensive security audit of network infrastructure",
+    productId: "prod2",
     companyId: "comp3",
     date: "2023-04-20",
     assignedById: "emp2",
@@ -170,9 +205,9 @@ export const workDetails: WorkDetail[] = [
     employeeId: "emp1",
     status: "Smooth",
     steps: [
-      "Conducted keyword research",
-      "Optimized meta tags and descriptions",
-      "Improved site structure and navigation",
+      "Conducted network vulnerability scan",
+      "Reviewed firewall configurations",
+      "Updated security policies and documentation",
     ],
   },
 ]

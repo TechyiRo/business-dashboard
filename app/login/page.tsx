@@ -9,63 +9,82 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { AnimatedBackground } from "@/components/animated-background"
-import Cookies from "js-cookie"
+import { useAuth } from "@/context/auth-context"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+  const { isAuthenticated, login, isLoading } = useAuth()
 
-  // Check if already authenticated
+  // Prevent hydration issues
   useEffect(() => {
-    const isAuthenticated = Cookies.get("authenticated")
-    if (isAuthenticated) {
-      router.push("/")
+    setMounted(true)
+  }, [])
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (mounted && !isLoading && isAuthenticated) {
+      router.replace("/")
     }
-  }, [router])
+  }, [mounted, isAuthenticated, isLoading, router])
+
+  // Don't render until mounted and auth check is complete
+  if (!mounted || isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-sp-red"></div>
+          <p className="text-sm text-gray-500">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render login form if already authenticated
+  if (isAuthenticated) {
+    return null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setIsSubmitting(true)
     setError("")
 
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const result = await login(username, password)
 
-      // Check credentials (hardcoded for this example)
-      if (username === "sp it" && password === "SanRo@2019!") {
-        // Set authentication cookie (in a real app, this would be a secure HTTP-only cookie set by the server)
-        Cookies.set("authenticated", "true", { expires: 1 }) // Expires in 1 day
-
+      if (result.success) {
         toast({
           title: "Login successful! ✅",
           description: "Welcome back to SP IT Technologies",
         })
 
-        // Force redirect to dashboard
-        window.location.href = "/"
+        // Redirect to dashboard
+        router.replace("/")
       } else {
-        setError("Invalid username or password. Please try again.")
+        setError(result.message)
         toast({
           title: "Login failed ❌",
-          description: "Invalid username or password. Please try again.",
+          description: result.message,
           variant: "destructive",
         })
       }
     } catch (err) {
-      setError("An error occurred. Please try again.")
+      const errorMessage = "An error occurred. Please try again."
+      setError(errorMessage)
       toast({
         title: "Login error",
-        description: "An error occurred. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
@@ -74,7 +93,7 @@ export default function LoginPage() {
       <AnimatedBackground />
 
       <div className="flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-md transform rounded-xl bg-white/90 p-8 shadow-xl border border-white/20 transition-all duration-500 hover:scale-[1.05]">
+        <div className="w-full max-w-md transform rounded-xl bg-white/90 p-8 shadow-xl border border-white/20 transition-all duration-500 hover:scale-[1.01]">
           <div className="mb-8 text-center">
             <div className="flex justify-center mb-2">
               <div className="rounded-full bg-primary/10 p-2 animate-pulse">
@@ -104,7 +123,7 @@ export default function LoginPage() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   className="bg-white"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -122,21 +141,26 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="bg-white pr-10"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   tabIndex={-1}
+                  disabled={isSubmitting}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full transition-all duration-300 hover:shadow-lg" disabled={isLoading}>
-              {isLoading ? (
+            <Button
+              type="submit"
+              className="w-full transition-all duration-300 hover:shadow-lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24">
                     <circle

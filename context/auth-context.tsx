@@ -23,40 +23,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Check authentication status on initial load
   useEffect(() => {
     const checkAuth = () => {
-      const authCookie = Cookies.get("authenticated")
-      setIsAuthenticated(!!authCookie)
-      setIsLoading(false)
+      try {
+        const authCookie = Cookies.get("authenticated")
+        const isAuth = authCookie === "true"
+        setIsAuthenticated(isAuth)
+        setIsLoading(false)
 
-      // If not authenticated and not on login page, redirect to login
-      if (!authCookie && pathname !== "/login") {
-        router.push("/login")
-      }
-
-      // If authenticated and on login page, redirect to dashboard
-      if (authCookie && pathname === "/login") {
-        router.push("/")
+        // Only redirect if we're sure about the auth state
+        if (!isAuth && pathname !== "/login") {
+          router.replace("/login")
+        } else if (isAuth && pathname === "/login") {
+          router.replace("/")
+        }
+      } catch (error) {
+        console.error("Auth check error:", error)
+        setIsAuthenticated(false)
+        setIsLoading(false)
       }
     }
 
-    checkAuth()
+    // Small delay to prevent flashing
+    const timer = setTimeout(checkAuth, 100)
+    return () => clearTimeout(timer)
   }, [pathname, router])
 
   const login = async (username: string, password: string) => {
     setIsLoading(true)
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    // Check credentials (hardcoded for this example)
-    if (username === "sp it" && password === "SanRo@2019!") {
-      // Set authentication cookie
-      Cookies.set("authenticated", "true", { expires: 1 }) // Expires in 1 day
-      setIsAuthenticated(true)
+      // Check credentials (hardcoded for this example)
+      if (username === "sp it" && password === "SanRo@2019!") {
+        // Set authentication cookie
+        Cookies.set("authenticated", "true", { expires: 1 }) // Expires in 1 day
+        setIsAuthenticated(true)
+        setIsLoading(false)
+        return { success: true, message: "Login successful" }
+      } else {
+        setIsLoading(false)
+        return { success: false, message: "Invalid username or password" }
+      }
+    } catch (error) {
       setIsLoading(false)
-      return { success: true, message: "Login successful" }
-    } else {
-      setIsLoading(false)
-      return { success: false, message: "Invalid username or password" }
+      return { success: false, message: "An error occurred during login" }
     }
   }
 
@@ -64,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Remove authentication cookie
     Cookies.remove("authenticated")
     setIsAuthenticated(false)
-    router.push("/login")
+    router.replace("/login")
   }
 
   return <AuthContext.Provider value={{ isAuthenticated, login, logout, isLoading }}>{children}</AuthContext.Provider>

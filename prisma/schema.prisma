@@ -9,15 +9,16 @@ datasource db {
 }
 
 model Employee {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   position    String
-  email       String  @unique
+  email       String       @unique
   phone       String
   
-  assignedBy  Task[]  @relation("AssignedBy")
-  assignedTo  Task[]  @relation("AssignedTo")
+  assignedBy  Task[]       @relation("AssignedBy")
+  assignedTo  Task[]       @relation("AssignedTo")
   workDetails WorkDetail[]
+  workUpdates WorkUpdate[]
 }
 
 model Product {
@@ -56,6 +57,8 @@ model Company {
   
   tasks      Task[]
   inventoryItems ProductInventory[]
+  workUpdates WorkUpdate[]
+  credentials Credential[]  // Add this line
 }
 
 model Task {
@@ -94,4 +97,48 @@ model WorkDetail {
   
   employee       Employee @relation(fields: [employeeId], references: [id])
   employeeId     String   @db.ObjectId
+}
+
+// Work tags model
+model WorkTag {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Work updates model - using array of tag names instead of relations for MongoDB
+model WorkUpdate {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  date         DateTime
+  workName     String
+  workDetail   String
+  workDuration Int      // Duration in minutes
+  tags         String[] // Array of tag names
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  employeeId   String   @db.ObjectId
+  
+  company      Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId    String?  @db.ObjectId
+}
+
+// Credentials model - standalone credential management
+model Credential {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  credentialName  String
+  username        String?
+  password        String?
+  other           String?  // Rich text field for additional information
+  isPasswordReadOnly Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId       String   @db.ObjectId
 }

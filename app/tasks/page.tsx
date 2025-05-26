@@ -15,6 +15,7 @@ import {
   Trash2,
   Wrench,
   UserCheck,
+  Edit,
 } from "lucide-react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { jsPDF } from "jspdf"
@@ -409,6 +410,13 @@ function TasksPageComponent() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href={`/tasks/edit/${task.id}`}>
+                  <Edit className="mr-2 h-4 w-4 text-blue-500" />
+                  Edit Task
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
                   setDeleteTaskId(task.id)
@@ -422,6 +430,7 @@ function TasksPageComponent() {
                 <Download className="mr-2 h-4 w-4 text-blue-500" />
                 Export to PDF
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {task.status === "Complete" && task.workDetail ? (
                 <DropdownMenuItem asChild>
                   <Link href={`/tasks/resolve/${task.id}`}>

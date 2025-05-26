@@ -4,7 +4,21 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { BarChart3, Building2, Home, Package, Settings, ShoppingBag, Users, Menu, X, Boxes, LogOut } from "lucide-react"
+import {
+  BarChart3,
+  Building2,
+  Home,
+  Package,
+  Settings,
+  ShoppingBag,
+  Users,
+  Menu,
+  X,
+  Boxes,
+  LogOut,
+  FileText,
+  Shield,
+} from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 
 import { cn } from "@/lib/utils"
@@ -43,9 +57,19 @@ const menuItems = [
     icon: ShoppingBag,
   },
   {
+    name: "Work Updates",
+    href: "/work-updates",
+    icon: FileText,
+  },
+  {
     name: "Reports",
     href: "/reports",
     icon: BarChart3,
+  },
+  {
+    name: "Credentials",
+    href: "/credentials",
+    icon: Shield,
   },
   {
     name: "Settings",

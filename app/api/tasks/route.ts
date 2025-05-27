@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
+import { sendTaskAssignmentEmail } from "@/lib/email-service"
 
 export async function GET() {
   try {
@@ -26,6 +27,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json()
+
+    // Create the task
     const task = await prisma.task.create({
       data: {
         name: data.name,
@@ -44,6 +47,34 @@ export async function POST(request: Request) {
         assignedTo: true,
       },
     })
+
+    // Send email notification to assigned employee
+    try {
+      if (task.assignedTo?.email) {
+        const emailResult = await sendTaskAssignmentEmail(task.assignedTo.email, task.assignedTo.name, {
+          taskName: task.name,
+          taskDetails: task.details,
+          dueDate: task.date.toISOString(),
+          assignedBy: task.assignedBy?.name || "System",
+          assignedTo: task.assignedTo.name,
+          product: task.product?.name || "N/A",
+          company: task.company?.name || "N/A",
+          status: task.status,
+        })
+
+        if (emailResult.success) {
+          console.log(`✅ Email notification sent to ${task.assignedTo.email} for task: ${task.name}`)
+        } else {
+          console.error(`❌ Failed to send email notification: ${emailResult.error}`)
+        }
+      } else {
+        console.warn(`⚠️ No email address found for assigned employee: ${task.assignedTo?.name}`)
+      }
+    } catch (emailError) {
+      console.error("❌ Error sending task assignment email:", emailError)
+      // Don't fail the task creation if email fails
+    }
+
     return NextResponse.json(task)
   } catch (error) {
     console.error("Error creating task:", error)

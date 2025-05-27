@@ -12,8 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
+import { AdvancedRichTextEditor } from "@/components/advanced-rich-text-editor"
 
 // Type definitions
 type Employee = {
@@ -69,6 +69,7 @@ export default function AddTaskPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [loading, setLoading] = useState(true)
+  const [taskDetails, setTaskDetails] = useState("")
 
   // Fetch data for dropdown options
   useEffect(() => {
@@ -118,6 +119,11 @@ export default function AddTaskPage() {
     },
   })
 
+  // Update form when rich text editor changes
+  useEffect(() => {
+    form.setValue("details", taskDetails)
+  }, [taskDetails, form])
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
 
@@ -127,7 +133,10 @@ export default function AddTaskPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          details: taskDetails, // Use the rich text content
+        }),
       })
 
       if (!response.ok) {
@@ -136,9 +145,13 @@ export default function AddTaskPage() {
 
       toast({
         title: "Success!",
-        description: "Task added successfully.",
+        description: "Task added successfully with rich formatting.",
         variant: "default",
       })
+
+      // Reset form and rich text editor
+      form.reset()
+      setTaskDetails("")
 
       // Redirect to the tasks page after a short delay
       setTimeout(() => {
@@ -167,13 +180,13 @@ export default function AddTaskPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <Card className="mx-auto max-w-2xl">
+      <Card className="mx-auto max-w-4xl">
         <CardHeader>
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-6 w-6" />
             <CardTitle>Add Task</CardTitle>
           </div>
-          <CardDescription>Create a new task and assign it to an employee.</CardDescription>
+          <CardDescription>Create a new task with rich text formatting and assign it to an employee.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -212,11 +225,20 @@ export default function AddTaskPage() {
                 name="details"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Task Details</FormLabel>
+                    <FormLabel>Task Details (Rich Text)</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Redesign the company website with new branding" {...field} />
+                      <AdvancedRichTextEditor
+                        value={taskDetails}
+                        onChange={setTaskDetails}
+                        placeholder="Enter detailed description with rich formatting..."
+                        className="w-full"
+                      />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-sm text-gray-600 mt-2">
+                      ✨ Use the toolbar above to format your text with different fonts, colors, and styles. Click
+                      "Steps" to add auto-numbered lists for task procedures.
+                    </p>
                   </FormItem>
                 )}
               />

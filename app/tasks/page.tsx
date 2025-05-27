@@ -66,6 +66,67 @@ type Task = {
   }
 }
 
+// Component to render rich text content safely
+function RichTextDisplay({ content, maxLength = 150 }: { content: string; maxLength?: number }) {
+  // Clean and sanitize HTML content
+  const cleanHtml = (html: string) => {
+    if (!html) return ""
+
+    // Remove any potentially dangerous scripts or elements
+    const cleanedHtml = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
+      .replace(/javascript:/gi, "")
+      .replace(/on\w+="[^"]*"/gi, "")
+
+    return cleanedHtml
+  }
+
+  // Strip HTML tags for plain text version (for length checking)
+  const stripHtml = (html: string) => {
+    if (typeof document !== "undefined") {
+      const tmp = document.createElement("div")
+      tmp.innerHTML = html
+      return tmp.textContent || tmp.innerText || ""
+    }
+    // Fallback for server-side rendering
+    return html.replace(/<[^>]*>/g, "")
+  }
+
+  const cleanedContent = cleanHtml(content)
+  const plainText = stripHtml(cleanedContent)
+  const shouldTruncate = plainText.length > maxLength
+
+  if (shouldTruncate) {
+    // For truncated view, show truncated HTML content
+    const truncatedHtml = cleanedContent.substring(0, maxLength) + "..."
+    return (
+      <div
+        className="max-w-xs text-sm leading-relaxed"
+        dangerouslySetInnerHTML={{ __html: truncatedHtml }}
+        style={{
+          maxHeight: "60px",
+          overflow: "hidden",
+          wordBreak: "break-word",
+        }}
+      />
+    )
+  }
+
+  // For full view, render the complete HTML content
+  return (
+    <div
+      className="max-w-xs text-sm leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: cleanedContent }}
+      style={{
+        maxHeight: "80px",
+        overflow: "hidden",
+        wordBreak: "break-word",
+      }}
+    />
+  )
+}
+
 function TasksPageComponent() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
@@ -83,16 +144,29 @@ function TasksPageComponent() {
       setFilteredTasks(tasks)
     } else {
       const lowercasedSearch = searchTerm.toLowerCase()
-      const filtered = tasks.filter(
-        (task) =>
+      const filtered = tasks.filter((task) => {
+        // Strip HTML for searching
+        const stripHtml = (html: string) => {
+          if (typeof document !== "undefined") {
+            const tmp = document.createElement("div")
+            tmp.innerHTML = html
+            return tmp.textContent || tmp.innerText || ""
+          }
+          return html.replace(/<[^>]*>/g, "")
+        }
+
+        const plainDetails = stripHtml(task.details || "")
+
+        return (
           task.name.toLowerCase().includes(lowercasedSearch) ||
-          task.details.toLowerCase().includes(lowercasedSearch) ||
+          plainDetails.toLowerCase().includes(lowercasedSearch) ||
           task.status.toLowerCase().includes(lowercasedSearch) ||
           task.product?.name?.toLowerCase().includes(lowercasedSearch) ||
           task.company?.name?.toLowerCase().includes(lowercasedSearch) ||
           task.assignedBy?.name?.toLowerCase().includes(lowercasedSearch) ||
-          task.assignedTo?.name?.toLowerCase().includes(lowercasedSearch),
-      )
+          task.assignedTo?.name?.toLowerCase().includes(lowercasedSearch)
+        )
+      })
       setFilteredTasks(filtered)
     }
   }, [searchTerm, tasks])
@@ -141,9 +215,16 @@ function TasksPageComponent() {
           ? updatedTasks
           : updatedTasks.filter((task) => {
               const lowercasedSearch = searchTerm.toLowerCase()
+              const stripHtml = (html: string) => {
+                const tmp = document.createElement("div")
+                tmp.innerHTML = html
+                return tmp.textContent || tmp.innerText || ""
+              }
+              const plainDetails = stripHtml(task.details)
+
               return (
                 task.name.toLowerCase().includes(lowercasedSearch) ||
-                task.details.toLowerCase().includes(lowercasedSearch) ||
+                plainDetails.toLowerCase().includes(lowercasedSearch) ||
                 task.status.toLowerCase().includes(lowercasedSearch) ||
                 task.product?.name?.toLowerCase().includes(lowercasedSearch) ||
                 task.company?.name?.toLowerCase().includes(lowercasedSearch) ||
@@ -204,10 +285,17 @@ function TasksPageComponent() {
       doc.setFontSize(20)
       doc.text("Task Details", 14, 22)
 
+      // Strip HTML for PDF export
+      const stripHtml = (html: string) => {
+        const tmp = document.createElement("div")
+        tmp.innerHTML = html
+        return tmp.textContent || tmp.innerText || ""
+      }
+
       // Add task information
       const taskData = [
         ["Task Name", task.name],
-        ["Details", task.details],
+        ["Details", stripHtml(task.details)],
         ["Status", task.status],
         ["Product", task.product?.name || "N/A"],
         ["Company", task.company?.name || "N/A"],
@@ -253,10 +341,18 @@ function TasksPageComponent() {
       doc.setFontSize(10)
       doc.text(`Generated on: ${date}`, 14, 30)
 
+      // Strip HTML for PDF export
+      const stripHtml = (html: string) => {
+        const tmp = document.createElement("div")
+        tmp.innerHTML = html
+        return tmp.textContent || tmp.innerText || ""
+      }
+
       // Prepare data for table
-      const tableColumn = ["Name", "Status", "Product", "Company", "Assigned To"]
+      const tableColumn = ["Name", "Details", "Status", "Product", "Company", "Assigned To"]
       const tableRows = filteredTasks.map((task) => [
         task.name,
+        stripHtml(task.details).substring(0, 50) + (stripHtml(task.details).length > 50 ? "..." : ""),
         task.status,
         task.product?.name || "N/A",
         task.company?.name || "N/A",
@@ -303,6 +399,10 @@ function TasksPageComponent() {
     {
       accessorKey: "details",
       header: "Details",
+      cell: ({ row }) => {
+        const task = row.original
+        return <RichTextDisplay content={task.details} maxLength={100} />
+      },
     },
     {
       accessorKey: "product",
@@ -470,6 +570,10 @@ function TasksPageComponent() {
               Complete Task
             </Button>
           </Link>
+          <Button variant="outline" onClick={exportAllTasksToPDF}>
+            <Download className="mr-2 h-4 w-4" />
+            Export All to PDF
+          </Button>
         </div>
       </div>
 

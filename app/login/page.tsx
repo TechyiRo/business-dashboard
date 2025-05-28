@@ -3,12 +3,13 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Lock, User, Wifi, Shield, Server } from "lucide-react"
+import { Eye, EyeOff, Lock, User, Wifi, Shield, Server, ClipboardList } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/auth-context"
 import { AnimatedITBackground } from "@/components/animated-it-background"
+import { TaskAssignmentModal } from "@/components/task-assignment-modal"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [showTaskModal, setShowTaskModal] = useState(false)
 
   const { isAuthenticated, isLoading, login } = useAuth()
   const router = useRouter()
@@ -188,30 +190,23 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            {/* Development credentials */}
-            <div className="mt-6 p-4 bg-slate-50/80 rounded-lg border border-slate-200/50 relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="h-2 w-2 bg-amber-500 rounded-full"></div>
-                <p className="text-xs font-medium text-slate-700">Development Access</p>
+            {/* Task Assignment Section */}
+            <div className="mt-6 p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg border border-orange-200/50 relative z-10">
+              <div className="flex items-center gap-2 mb-3">
+                <ClipboardList className="h-5 w-5 text-orange-600" />
+                <p className="text-sm font-medium text-orange-800">Need Technical Support?</p>
               </div>
-              <div className="text-xs text-slate-600 space-y-1">
-                <p>
-                  <strong>Username:</strong> sp it
-                </p>
-                <p>
-                  <strong>Password:</strong> SanRo@2019!
-                </p>
-              </div>
-              <button
+              <p className="text-xs text-orange-700 mb-3">
+                Submit a task assignment request without login. Our technical team will assist you promptly.
+              </p>
+              <Button
                 type="button"
-                onClick={() => {
-                  setUsername("sp it")
-                  setPassword("SanRo@2019!")
-                }}
-                className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline transition-colors"
+                onClick={() => setShowTaskModal(true)}
+                className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-medium py-2 transition-all duration-200"
               >
-                Auto-fill credentials
-              </button>
+                <ClipboardList className="h-4 w-4 mr-2" />
+                Assign Task
+              </Button>
             </div>
           </div>
 
@@ -221,6 +216,9 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Task Assignment Modal */}
+      <TaskAssignmentModal isOpen={showTaskModal} onClose={() => setShowTaskModal(false)} />
     </div>
   )
 }

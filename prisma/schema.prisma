@@ -58,7 +58,7 @@ model Company {
   tasks      Task[]
   inventoryItems ProductInventory[]
   workUpdates WorkUpdate[]
-  credentials Credential[]  // Add this line
+  credentials Credential[]
 }
 
 model Task {
@@ -141,4 +141,22 @@ model Credential {
   // Relations
   company         Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId       String   @db.ObjectId
+}
+
+// Task Assignment model - for external task submissions (no login required)
+model TaskAssignment {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  taskId              String   @unique // Format: 2019-1 to 2019-100
+  date                DateTime @default(now())
+  name                String
+  companyName         String
+  address             String
+  contactNumber       String
+  priority            String   // "urgent", "basic", "easy"
+  issueDescription    String
+  screenshotUrl       String?  // URL to uploaded screenshot (optional)
+  additionalFileUrl   String?  // URL to additional uploaded file (optional)
+  status              String   @default("pending") // "pending", "in-progress", "completed"
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }

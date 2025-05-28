@@ -30,6 +30,344 @@ const createTransporter = () => {
   })
 }
 
+// Task Assignment Email Template (for public form submissions)
+export const generateTaskAssignmentNotificationEmail = (taskData: {
+  taskId: string
+  date: Date | string
+  name: string
+  companyName: string
+  address: string
+  contactNumber: string
+  priority: string
+  issueDescription: string
+  screenshotUrl?: string
+  additionalFileUrl?: string
+}) => {
+  const priorityEmojis = {
+    urgent: "🟥",
+    basic: "🟨",
+    easy: "🟩",
+  }
+
+  const priorityColors = {
+    urgent: "#dc2626",
+    basic: "#f59e0b",
+    easy: "#16a34a",
+  }
+
+  const priorityLabels = {
+    urgent: "Urgent",
+    basic: "Basic",
+    easy: "Easy",
+  }
+
+  const formattedDate =
+    taskData.date instanceof Date
+      ? taskData.date.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : new Date(taskData.date).toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>New Task Assignment - ${taskData.taskId}</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: #f4f4f4;
+        }
+        .email-container {
+          background-color: #ffffff;
+          border-radius: 10px;
+          padding: 30px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          color: white;
+          padding: 20px;
+          border-radius: 8px;
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+        }
+        .task-info {
+          background-color: #f8f9fa;
+          border-left: 4px solid #f97316;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 0 8px 8px 0;
+        }
+        .info-row {
+          display: flex;
+          margin-bottom: 12px;
+          align-items: flex-start;
+        }
+        .info-label {
+          font-weight: 600;
+          color: #495057;
+          min-width: 140px;
+          margin-right: 10px;
+        }
+        .info-value {
+          color: #212529;
+          flex: 1;
+        }
+        .priority-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: white;
+          background-color: ${priorityColors[taskData.priority as keyof typeof priorityColors]};
+        }
+        .issue-details {
+          background-color: #fff;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 20px;
+          margin: 20px 0;
+        }
+        .attachments {
+          background-color: #f8f9fa;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 15px;
+          margin: 20px 0;
+        }
+        .attachment-link {
+          display: inline-block;
+          background-color: #007bff;
+          color: white;
+          padding: 8px 16px;
+          text-decoration: none;
+          border-radius: 4px;
+          margin: 5px 5px 5px 0;
+          font-size: 12px;
+        }
+        .footer {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e9ecef;
+          text-align: center;
+          color: #6c757d;
+          font-size: 14px;
+        }
+        .cta-button {
+          display: inline-block;
+          background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+          color: white;
+          padding: 12px 24px;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: 600;
+          margin: 20px 0;
+        }
+        @media (max-width: 600px) {
+          .info-row {
+            flex-direction: column;
+          }
+          .info-label {
+            min-width: auto;
+            margin-bottom: 4px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <h1>📋 New Task Assignment</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Task ID: ${taskData.taskId}</p>
+        </div>
+
+        <div class="task-info">
+          <div class="info-row">
+            <span class="info-label">📅 Date:</span>
+            <span class="info-value">${formattedDate}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">👤 Client Name:</span>
+            <span class="info-value">${taskData.name}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">🏢 Company:</span>
+            <span class="info-value">${taskData.companyName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">📍 Address:</span>
+            <span class="info-value">${taskData.address}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">📞 Contact:</span>
+            <span class="info-value">${taskData.contactNumber}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">⚡ Priority:</span>
+            <span class="info-value">
+              <span class="priority-badge">
+                ${priorityEmojis[taskData.priority as keyof typeof priorityEmojis]} ${priorityLabels[taskData.priority as keyof typeof priorityLabels]}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        <div class="issue-details">
+          <h3 style="margin-top: 0; color: #495057;">🔧 Issue Description:</h3>
+          <div style="line-height: 1.6; white-space: pre-wrap;">
+            ${taskData.issueDescription}
+          </div>
+        </div>
+
+        ${
+          taskData.screenshotUrl || taskData.additionalFileUrl
+            ? `
+        <div class="attachments">
+          <h4 style="margin-top: 0; color: #495057;">📎 Attachments:</h4>
+          ${taskData.screenshotUrl ? `<a href="${taskData.screenshotUrl}" class="attachment-link">📷 Screenshot</a>` : ""}
+          ${taskData.additionalFileUrl ? `<a href="${taskData.additionalFileUrl}" class="attachment-link">📄 Additional File</a>` : ""}
+        </div>
+        `
+            : ""
+        }
+
+        <div style="text-align: center;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://your-app.vercel.app"}/tasks" class="cta-button">
+            View Task Dashboard
+          </a>
+        </div>
+
+        <div class="footer">
+          <p><strong>📧 SP IT Technologies - Helpdesk</strong></p>
+          <p>This is an automated notification for a new task assignment.</p>
+          <p>Please respond to this task promptly based on the priority level.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const textContent = `
+    NEW TASK ASSIGNMENT - ${taskData.taskId}
+    
+    Date: ${formattedDate}
+    Client Name: ${taskData.name}
+    Company: ${taskData.companyName}
+    Address: ${taskData.address}
+    Contact Number: ${taskData.contactNumber}
+    Priority: ${priorityEmojis[taskData.priority as keyof typeof priorityEmojis]} ${priorityLabels[taskData.priority as keyof typeof priorityLabels]}
+    
+    Issue Description:
+    ${taskData.issueDescription}
+    
+    ${taskData.screenshotUrl ? `Screenshot: ${taskData.screenshotUrl}` : ""}
+    ${taskData.additionalFileUrl ? `Additional File: ${taskData.additionalFileUrl}` : ""}
+    
+    ---
+    This is an automated notification from SP IT Technologies Helpdesk.
+    Please respond to this task promptly based on the priority level.
+  `
+
+  return {
+    html: htmlContent,
+    text: textContent,
+  }
+}
+
+// Send task assignment notification email (for public form submissions)
+export const sendTaskAssignmentEmail = async (taskData: {
+  taskId: string
+  date: Date | string
+  name: string
+  companyName: string
+  address: string
+  contactNumber: string
+  priority: string
+  issueDescription: string
+  screenshot?: File | null
+  additionalFile?: File | null
+}) => {
+  try {
+    console.log("🔄 Sending task assignment notification email...")
+    console.log("📧 Task ID:", taskData.taskId)
+    console.log("👤 Client:", taskData.name)
+    console.log("🏢 Company:", taskData.companyName)
+    console.log("⚡ Priority:", taskData.priority)
+
+    const transporter = createTransporter()
+
+    // Prepare email data with proper field names
+    const emailData = {
+      taskId: taskData.taskId,
+      date: taskData.date,
+      name: taskData.name,
+      companyName: taskData.companyName,
+      address: taskData.address,
+      contactNumber: taskData.contactNumber,
+      priority: taskData.priority,
+      issueDescription: taskData.issueDescription,
+      screenshotUrl: taskData.screenshot
+        ? `uploads/${taskData.taskId}-screenshot-${taskData.screenshot.name}`
+        : undefined,
+      additionalFileUrl: taskData.additionalFile
+        ? `uploads/${taskData.taskId}-additional-${taskData.additionalFile.name}`
+        : undefined,
+    }
+
+    const emailContent = generateTaskAssignmentNotificationEmail(emailData)
+
+    const mailOptions = {
+      from: `"SP IT Technologies - Task System" <${process.env.SMTP_USER}>`,
+      to: "helpdesk@spittechnologies.co.in",
+      subject: `🚨 New Task Assignment: ${taskData.taskId} - ${taskData.priority.toUpperCase()} Priority`,
+      text: emailContent.text,
+      html: emailContent.html,
+    }
+
+    const result = await transporter.sendMail(mailOptions)
+
+    console.log("✅ Task assignment notification email sent successfully:", {
+      messageId: result.messageId,
+      taskId: taskData.taskId,
+      priority: taskData.priority,
+    })
+
+    return {
+      success: true,
+      messageId: result.messageId,
+    }
+  } catch (error) {
+    console.error("❌ Failed to send task assignment notification email:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    }
+  }
+}
+
 // Work Update Email Template
 export const generateWorkUpdateEmail = (workUpdateData: {
   workName: string
@@ -327,7 +665,7 @@ export const sendWorkUpdateEmail = async (
   }
 }
 
-// Task Assignment Email Template
+// Task Assignment Email Template (for internal dashboard use)
 export const generateTaskAssignmentEmail = (taskData: {
   taskName: string
   taskDetails: string
@@ -539,7 +877,7 @@ export const generateTaskAssignmentEmail = (taskData: {
   }
 }
 
-export const sendTaskAssignmentEmail = async (
+export const sendTaskAssignmentEmailInternal = async (
   recipientEmail: string,
   recipientName: string,
   taskData: {
@@ -554,7 +892,7 @@ export const sendTaskAssignmentEmail = async (
   },
 ) => {
   try {
-    console.log("🔄 Attempting to send task assignment email...")
+    console.log("🔄 Attempting to send internal task assignment email...")
     console.log("📧 Recipient:", recipientEmail)
     console.log("📋 Task:", taskData.taskName)
     console.log("🔧 Email Provider:", process.env.EMAIL_PROVIDER || "gmail")
@@ -572,7 +910,7 @@ export const sendTaskAssignmentEmail = async (
 
     const result = await transporter.sendMail(mailOptions)
 
-    console.log("✅ Task assignment email sent successfully:", {
+    console.log("✅ Internal task assignment email sent successfully:", {
       messageId: result.messageId,
       recipient: recipientEmail,
       taskName: taskData.taskName,
@@ -583,7 +921,7 @@ export const sendTaskAssignmentEmail = async (
       messageId: result.messageId,
     }
   } catch (error) {
-    console.error("❌ Failed to send task assignment email:", error)
+    console.error("❌ Failed to send internal task assignment email:", error)
 
     // Provide specific error guidance
     if (error instanceof Error) {

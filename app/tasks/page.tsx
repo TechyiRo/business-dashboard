@@ -16,6 +16,8 @@ import {
   Wrench,
   UserCheck,
   Edit,
+  Calendar,
+  List,
 } from "lucide-react"
 import type { ColumnDef } from "@tanstack/react-table"
 import { jsPDF } from "jspdf"
@@ -46,6 +48,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { SearchInput } from "@/components/search-input"
 import { ProtectedRoute } from "@/components/protected-route"
+import { RichTextDisplay } from "@/components/rich-text-display"
+import { TaskCalendarView } from "@/components/task-calendar-view"
 
 type Task = {
   id: string
@@ -66,77 +70,27 @@ type Task = {
   }
 }
 
-// Component to render rich text content safely
-function RichTextDisplay({ content, maxLength = 150 }: { content: string; maxLength?: number }) {
-  // Clean and sanitize HTML content
-  const cleanHtml = (html: string) => {
-    if (!html) return ""
-
-    // Remove any potentially dangerous scripts or elements
-    const cleanedHtml = html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "")
-      .replace(/javascript:/gi, "")
-      .replace(/on\w+="[^"]*"/gi, "")
-
-    return cleanedHtml
-  }
-
-  // Strip HTML tags for plain text version (for length checking)
-  const stripHtml = (html: string) => {
-    if (typeof document !== "undefined") {
-      const tmp = document.createElement("div")
-      tmp.innerHTML = html
-      return tmp.textContent || tmp.innerText || ""
-    }
-    // Fallback for server-side rendering
-    return html.replace(/<[^>]*>/g, "")
-  }
-
-  const cleanedContent = cleanHtml(content)
-  const plainText = stripHtml(cleanedContent)
-  const shouldTruncate = plainText.length > maxLength
-
-  if (shouldTruncate) {
-    // For truncated view, show truncated HTML content
-    const truncatedHtml = cleanedContent.substring(0, maxLength) + "..."
-    return (
-      <div
-        className="max-w-xs text-sm leading-relaxed"
-        dangerouslySetInnerHTML={{ __html: truncatedHtml }}
-        style={{
-          maxHeight: "60px",
-          overflow: "hidden",
-          wordBreak: "break-word",
-        }}
-      />
-    )
-  }
-
-  // For full view, render the complete HTML content
-  return (
-    <div
-      className="max-w-xs text-sm leading-relaxed"
-      dangerouslySetInnerHTML={{ __html: cleanedContent }}
-      style={{
-        maxHeight: "80px",
-        overflow: "hidden",
-        wordBreak: "break-word",
-      }}
-    />
-  )
+type Employee = {
+  id: string
+  name: string
+  position: string
+  email: string
+  phone: string
 }
 
 function TasksPageComponent() {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
 
   useEffect(() => {
     fetchTasks()
+    fetchEmployees()
   }, [])
 
   useEffect(() => {
@@ -190,6 +144,24 @@ function TasksPageComponent() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchEmployees() {
+    try {
+      const response = await fetch("/api/employees")
+      if (!response.ok) {
+        throw new Error("Failed to fetch employees")
+      }
+      const data = await response.json()
+      setEmployees(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error("Error fetching employees:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load employees. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -583,19 +555,43 @@ function TasksPageComponent() {
             <ShoppingBag className="h-5 w-5" />
             Task List
           </CardTitle>
-          <SearchInput
-            placeholder="Search tasks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <div className="flex items-center gap-4">
+            <SearchInput
+              placeholder="Search tasks..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <div className="flex border rounded-md overflow-hidden">
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4 mr-1" />
+                List
+              </Button>
+              <Button
+                variant={viewMode === "calendar" ? "default" : "ghost"}
+                size="sm"
+                className="rounded-none"
+                onClick={() => setViewMode("calendar")}
+              >
+                <Calendar className="h-4 w-4 mr-1" />
+                Calendar
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center h-24">
               <p>Loading tasks...</p>
             </div>
-          ) : (
+          ) : viewMode === "list" ? (
             <DataTable columns={taskColumns} data={filteredTasks} />
+          ) : (
+            <TaskCalendarView tasks={filteredTasks} employees={employees} />
           )}
         </CardContent>
       </Card>

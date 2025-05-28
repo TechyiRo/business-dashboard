@@ -1,19 +1,333 @@
 import nodemailer from "nodemailer"
 
-// Email configuration
+// Email configuration with multiple provider support
 const createTransporter = () => {
+  const emailProvider = process.env.EMAIL_PROVIDER || "gmail"
+
+  // Gmail configuration
+  if (emailProvider === "gmail") {
+    return nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    })
+  }
+
+  // Generic SMTP configuration
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: Number.parseInt(process.env.SMTP_PORT || "587"),
-    secure: false, // true for 465, false for other ports
+    secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    tls: {
+      rejectUnauthorized: false,
+    },
   })
 }
 
-// Email templates
+// Work Update Email Template
+export const generateWorkUpdateEmail = (workUpdateData: {
+  workName: string
+  workDetail: string
+  date: string
+  workDuration: number
+  tags: string[]
+  employeeName: string
+  companyName?: string
+  newTags?: { name: string; color: string }[]
+}) => {
+  // Format duration in hours and minutes
+  const hours = Math.floor(workUpdateData.workDuration / 60)
+  const minutes = workUpdateData.workDuration % 60
+  const formattedDuration =
+    hours > 0
+      ? `${hours} hour${hours !== 1 ? "s" : ""} ${minutes > 0 ? `${minutes} minute${minutes !== 1 ? "s" : ""}` : ""}`
+      : `${minutes} minute${minutes !== 1 ? "s" : ""}`
+
+  // Format date
+  const formattedDate = new Date(workUpdateData.date).toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+  // Strip HTML tags from work details for plain text version
+  const plainTextDetails = workUpdateData.workDetail.replace(/<[^>]*>/g, "")
+
+  // Generate tag HTML
+  const tagsHtml = workUpdateData.tags
+    .map((tag) => {
+      return `<span style="display: inline-block; background-color: #f0f0f0; color: #333; padding: 4px 8px; border-radius: 16px; font-size: 12px; margin-right: 6px; margin-bottom: 6px;">${tag}</span>`
+    })
+    .join(" ")
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Work Update Confirmation</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: #f4f4f4;
+        }
+        .email-container {
+          background-color: #ffffff;
+          border-radius: 10px;
+          padding: 30px;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+          color: white;
+          padding: 20px;
+          border-radius: 8px;
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+        }
+        .work-info {
+          background-color: #f8f9fa;
+          border-left: 4px solid #4CAF50;
+          padding: 20px;
+          margin: 20px 0;
+          border-radius: 0 8px 8px 0;
+        }
+        .info-row {
+          display: flex;
+          margin-bottom: 12px;
+          align-items: flex-start;
+        }
+        .info-label {
+          font-weight: 600;
+          color: #495057;
+          min-width: 120px;
+          margin-right: 10px;
+        }
+        .info-value {
+          color: #212529;
+          flex: 1;
+        }
+        .work-details {
+          background-color: #fff;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          padding: 20px;
+          margin: 20px 0;
+        }
+        .duration-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          background-color: #e9ecef;
+          color: #212529;
+        }
+        .footer {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e9ecef;
+          text-align: center;
+          color: #6c757d;
+          font-size: 14px;
+        }
+        .cta-button {
+          display: inline-block;
+          background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+          color: white;
+          padding: 12px 24px;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: 600;
+          margin: 20px 0;
+        }
+        .tags-container {
+          margin-top: 15px;
+        }
+        @media (max-width: 600px) {
+          .info-row {
+            flex-direction: column;
+          }
+          .info-label {
+            min-width: auto;
+            margin-bottom: 4px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="header">
+          <h1>📝 Work Update Confirmation</h1>
+          <p style="margin: 10px 0 0 0; opacity: 0.9;">Your work update has been recorded</p>
+        </div>
+
+        <div class="work-info">
+          <div class="info-row">
+            <span class="info-label">📋 Work Name:</span>
+            <span class="info-value"><strong>${workUpdateData.workName}</strong></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">👤 Employee:</span>
+            <span class="info-value">${workUpdateData.employeeName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">📅 Date:</span>
+            <span class="info-value">${formattedDate}</span>
+          </div>
+          ${
+            workUpdateData.companyName
+              ? `
+          <div class="info-row">
+            <span class="info-label">🏢 Company:</span>
+            <span class="info-value">${workUpdateData.companyName}</span>
+          </div>
+          `
+              : ""
+          }
+          <div class="info-row">
+            <span class="info-label">⏱️ Duration:</span>
+            <span class="info-value"><span class="duration-badge">${formattedDuration}</span></span>
+          </div>
+          ${
+            workUpdateData.tags.length > 0
+              ? `
+          <div class="info-row">
+            <span class="info-label">🏷️ Tags:</span>
+            <span class="info-value">
+              <div class="tags-container">
+                ${tagsHtml}
+              </div>
+            </span>
+          </div>
+          `
+              : ""
+          }
+        </div>
+
+        <div class="work-details">
+          <h3 style="margin-top: 0; color: #495057;">📝 Work Details:</h3>
+          <div style="line-height: 1.6;">
+            ${workUpdateData.workDetail}
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://your-app.vercel.app"}/work-updates" class="cta-button">
+            View Work Updates Dashboard
+          </a>
+        </div>
+
+        <div class="footer">
+          <p><strong>📧 Work Management System</strong></p>
+          <p>This is an automated confirmation of your work update submission.</p>
+          <p>If you did not submit this work update, please contact your administrator.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  const textContent = `
+    WORK UPDATE CONFIRMATION
+    
+    Hello ${workUpdateData.employeeName},
+    
+    Your work update has been recorded:
+    
+    Work Name: ${workUpdateData.workName}
+    Date: ${formattedDate}
+    Duration: ${formattedDuration}
+    ${workUpdateData.companyName ? `Company: ${workUpdateData.companyName}` : ""}
+    Tags: ${workUpdateData.tags.join(", ")}
+    
+    Work Details:
+    ${plainTextDetails}
+    
+    You can view all your work updates on the dashboard:
+    ${process.env.NEXT_PUBLIC_APP_URL || "https://your-app.vercel.app"}/work-updates
+    
+    ---
+    This is an automated confirmation from the Work Management System.
+  `
+
+  return {
+    html: htmlContent,
+    text: textContent,
+  }
+}
+
+// Send work update confirmation email
+export const sendWorkUpdateEmail = async (
+  recipientEmail: string,
+  recipientName: string,
+  workUpdateData: {
+    workName: string
+    workDetail: string
+    date: string
+    workDuration: number
+    tags: string[]
+    employeeName: string
+    companyName?: string
+    newTags?: { name: string; color: string }[]
+  },
+) => {
+  try {
+    console.log("🔄 Sending work update confirmation email...")
+    console.log("📧 Recipient:", recipientEmail)
+    console.log("📋 Work Update:", workUpdateData.workName)
+
+    const transporter = createTransporter()
+    const emailContent = generateWorkUpdateEmail(workUpdateData)
+
+    const mailOptions = {
+      from: `"Work Management System" <${process.env.SMTP_USER}>`,
+      to: recipientEmail,
+      subject: `📝 Work Update Confirmation: ${workUpdateData.workName}`,
+      text: emailContent.text,
+      html: emailContent.html,
+    }
+
+    const result = await transporter.sendMail(mailOptions)
+
+    console.log("✅ Work update email sent successfully:", {
+      messageId: result.messageId,
+      recipient: recipientEmail,
+      workName: workUpdateData.workName,
+    })
+
+    return {
+      success: true,
+      messageId: result.messageId,
+    }
+  } catch (error) {
+    console.error("❌ Failed to send work update email:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    }
+  }
+}
+
+// Task Assignment Email Template
 export const generateTaskAssignmentEmail = (taskData: {
   taskName: string
   taskDetails: string
@@ -178,7 +492,7 @@ export const generateTaskAssignmentEmail = (taskData: {
         </div>
 
         <div style="text-align: center;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/tasks" class="cta-button">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://your-app.vercel.app"}/tasks" class="cta-button">
             View Task Dashboard
           </a>
         </div>
@@ -212,7 +526,7 @@ export const generateTaskAssignmentEmail = (taskData: {
     
     Please log in to the task management system to view more details and update the task status.
     
-    Dashboard URL: ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/tasks
+    Dashboard URL: ${process.env.NEXT_PUBLIC_APP_URL || "https://your-app.vercel.app"}/tasks
     
     ---
     This is an automated notification from the Task Management System.
@@ -243,6 +557,7 @@ export const sendTaskAssignmentEmail = async (
     console.log("🔄 Attempting to send task assignment email...")
     console.log("📧 Recipient:", recipientEmail)
     console.log("📋 Task:", taskData.taskName)
+    console.log("🔧 Email Provider:", process.env.EMAIL_PROVIDER || "gmail")
 
     const transporter = createTransporter()
     const emailContent = generateTaskAssignmentEmail(taskData)
@@ -269,6 +584,14 @@ export const sendTaskAssignmentEmail = async (
     }
   } catch (error) {
     console.error("❌ Failed to send task assignment email:", error)
+
+    // Provide specific error guidance
+    if (error instanceof Error) {
+      if (error.message.includes("Invalid login") || error.message.includes("BadCredentials")) {
+        console.error("🔑 Gmail Authentication Issue - Check your App Password setup")
+      }
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -280,10 +603,15 @@ export const sendTaskAssignmentEmail = async (
 export const testEmailConfiguration = async () => {
   try {
     console.log("🔍 Testing email configuration...")
+    console.log("📧 Email Provider:", process.env.EMAIL_PROVIDER || "gmail")
     console.log("📧 SMTP Host:", process.env.SMTP_HOST)
     console.log("📧 SMTP Port:", process.env.SMTP_PORT)
     console.log("📧 SMTP User:", process.env.SMTP_USER ? "✅ Set" : "❌ Not set")
     console.log("📧 SMTP Pass:", process.env.SMTP_PASS ? "✅ Set" : "❌ Not set")
+
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      throw new Error("SMTP credentials not configured")
+    }
 
     const transporter = createTransporter()
     await transporter.verify()

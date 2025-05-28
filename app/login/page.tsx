@@ -3,16 +3,12 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Lock, User, AlertTriangle, CheckCircle, ArrowRight } from "lucide-react"
+import { Eye, EyeOff, Lock, User, Wifi, Shield, Server } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
-import { AnimatedBackground } from "@/components/animated-background"
 import { useAuth } from "@/context/auth-context"
-
-// Dev mode flag - set to false for production
-const DEV_MODE = process.env.NODE_ENV === "development"
+import { AnimatedITBackground } from "@/components/animated-it-background"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -20,68 +16,39 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const [mounted, setMounted] = useState(false)
-  const [loginSuccess, setLoginSuccess] = useState(false)
-  const [showDevCredentials, setShowDevCredentials] = useState(false)
+
+  const { isAuthenticated, isLoading, login } = useAuth()
   const router = useRouter()
-  const { toast } = useToast()
-  const { isAuthenticated, login, isLoading, redirectError, clearRedirectError } = useAuth()
 
-  // Prevent hydration issues
+  // Redirect if already authenticated
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  // Handle authentication state changes
-  useEffect(() => {
-    if (mounted && !isLoading) {
-      if (isAuthenticated) {
-        console.log("✅ User authenticated - should redirect to dashboard")
-        if (!loginSuccess) {
-          setLoginSuccess(true)
-        }
-      }
+    if (!isLoading && isAuthenticated) {
+      router.push("/")
     }
-  }, [mounted, isAuthenticated, isLoading, loginSuccess])
+  }, [isAuthenticated, isLoading, router])
 
-  // Handle redirect errors
-  useEffect(() => {
-    if (redirectError) {
-      console.log("❌ Redirect error detected")
-      setLoginSuccess(false)
-      toast({
-        title: "Redirect Issue",
-        description:
-          "Login was successful, but there was an issue redirecting to the dashboard. Please try the manual redirect button below.",
-        variant: "destructive",
-        duration: 8000,
-      })
-    }
-  }, [redirectError, toast])
-
-  // Show loading while checking auth
-  if (!mounted || isLoading) {
+  // Show loading
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
-          <p className="text-sm text-gray-500">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+          <p className="text-slate-600 font-medium">Initializing secure connection...</p>
         </div>
       </div>
     )
   }
 
-  // Show redirecting state if authenticated and no redirect error
-  if (isAuthenticated && loginSuccess && !redirectError) {
+  // Don't show login form if authenticated
+  if (isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <CheckCircle className="h-12 w-12 text-green-600 animate-pulse" />
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Login Successful!</h2>
-            <p className="text-sm text-gray-500 mt-1">Redirecting to the main dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-pulse flex justify-center mb-4">
+            <Shield className="h-12 w-12 text-green-600" />
           </div>
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600"></div>
+          <h2 className="text-xl font-semibold text-slate-800">Secure connection established</h2>
+          <p className="text-slate-600 mt-2">Redirecting to dashboard...</p>
         </div>
       </div>
     )
@@ -91,242 +58,167 @@ export default function LoginPage() {
     e.preventDefault()
     setIsSubmitting(true)
     setError("")
-    clearRedirectError()
 
     try {
-      console.log("🔐 Submitting login form")
-      const result = await login(username, password)
+      const success = await login(username, password)
 
-      if (result.success) {
-        console.log("✅ Login successful")
-        setLoginSuccess(true)
-
-        toast({
-          title: "Login Successful! ✅",
-          description: "Redirecting to the main dashboard...",
-          duration: 2000,
-        })
+      if (success) {
+        router.push("/")
       } else {
-        console.log("❌ Login failed:", result.message)
-        setError(result.message)
-        toast({
-          title: "Login Failed",
-          description: result.message,
-          variant: "destructive",
-        })
+        setError("Invalid credentials. Access denied.")
       }
     } catch (err) {
-      console.error("❌ Login error:", err)
-      const errorMessage = "An error occurred. Please try again."
-      setError(errorMessage)
-      toast({
-        title: "Login Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
+      setError("Connection failed. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleRetryLogin = () => {
-    console.log("🔄 Retrying login after redirect failure")
-    clearRedirectError()
-    setLoginSuccess(false)
-    setError("")
-    setUsername("")
-    setPassword("")
-  }
-
-  const handleManualRedirect = () => {
-    console.log("🔄 Manual redirect to dashboard")
-    clearRedirectError()
-
-    // Try multiple redirect methods
-    try {
-      router.push("/")
-
-      // Fallback with window.location
-      setTimeout(() => {
-        window.location.href = "/"
-      }, 1000)
-    } catch (error) {
-      console.error("❌ Manual redirect failed:", error)
-      window.location.href = "/"
-    }
-  }
-
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <AnimatedBackground />
+      <AnimatedITBackground />
 
-      <div className="flex min-h-screen items-center justify-center px-4">
-        <div className="w-full max-w-md transform rounded-xl bg-white/95 p-8 shadow-xl border border-white/20 transition-all duration-500 hover:scale-[1.01] backdrop-blur-sm">
-          <div className="mb-8 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="rounded-full bg-blue-100 p-3">
-                <Lock className="h-8 w-8 text-blue-600" />
+      {/* Overlay for better contrast */}
+      <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px]" />
+
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          {/* Login Card */}
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/50 p-8 relative overflow-hidden">
+            {/* Subtle tech pattern overlay */}
+            <div className="absolute inset-0 opacity-5">
+              <div className="absolute top-4 right-4">
+                <Server className="h-8 w-8 text-blue-600" />
+              </div>
+              <div className="absolute bottom-4 left-4">
+                <Wifi className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="absolute top-1/2 right-8 transform -translate-y-1/2">
+                <Shield className="h-6 w-6 text-blue-600" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Welcome to SP IT Technologies</h1>
-            <p className="mt-2 text-sm text-gray-600">Enter your credentials to access your account</p>
-          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Success message */}
-            {loginSuccess && !redirectError && (
-              <div className="bg-green-50 text-green-700 text-sm p-4 rounded-lg border border-green-200 flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Login successful!</p>
-                  <p className="text-xs mt-1">Redirecting to the main dashboard...</p>
-                </div>
-              </div>
-            )}
-
-            {/* Redirect failure message with manual redirect option */}
-            {redirectError && (
-              <div className="bg-orange-50 text-orange-800 text-sm p-4 rounded-lg border border-orange-200">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium">Redirect Issue</p>
-                    <p className="text-xs mt-1 mb-3">
-                      Login was successful, but there was an issue redirecting to the dashboard. You can try the manual
-                      redirect button below or contact support.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        onClick={handleManualRedirect}
-                        size="sm"
-                        className="bg-orange-600 hover:bg-orange-700 text-white text-xs"
-                      >
-                        <ArrowRight className="h-3 w-3 mr-1" />
-                        Go to Dashboard
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={handleRetryLogin}
-                        className="text-xs font-medium text-orange-700 hover:text-orange-900 underline"
-                      >
-                        Try logging in again
-                      </button>
-                    </div>
+            {/* Header */}
+            <div className="text-center mb-8 relative z-10">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <div className="rounded-full bg-gradient-to-br from-blue-500 to-blue-600 p-4 shadow-lg">
+                    <Lock className="h-8 w-8 text-white" />
                   </div>
+                  <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
                 </div>
               </div>
-            )}
-
-            {/* Error message */}
-            {error && (
-              <div className="bg-red-50 text-red-700 text-sm p-4 rounded-lg border border-red-200 flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="username" className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                <User className="h-4 w-4" />
-                Username
-              </Label>
-              <Input
-                id="username"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                disabled={isSubmitting || (loginSuccess && !redirectError)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Lock className="h-4 w-4" />
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
-                  disabled={isSubmitting || (loginSuccess && !redirectError)}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  tabIndex={-1}
-                  disabled={isSubmitting || (loginSuccess && !redirectError)}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+              <h1 className="text-2xl font-bold text-slate-800 mb-2">SP IT Technologies</h1>
+              <p className="text-slate-600 text-sm">Secure Network Access Portal</p>
+              <div className="flex items-center justify-center gap-2 mt-3 text-xs text-slate-500">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Network Status: Online</span>
               </div>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 hover:shadow-lg"
-              disabled={isSubmitting || (loginSuccess && !redirectError)}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  Logging in...
-                </span>
-              ) : loginSuccess && !redirectError ? (
-                <span className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  Redirecting...
-                </span>
-              ) : (
-                "Sign In"
+            {/* Login Form */}
+            <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                  <Shield className="h-4 w-4 flex-shrink-0" />
+                  {error}
+                </div>
               )}
-            </Button>
-          </form>
 
-          {/* Dev credentials - only shown in development mode */}
-          {DEV_MODE && (
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() => setShowDevCredentials(!showDevCredentials)}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
-              >
-                {showDevCredentials ? "Hide" : "Show"} Dev Credentials
-              </button>
+              <div className="space-y-2">
+                <Label htmlFor="username" className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <User className="h-4 w-4 text-blue-600" />
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  disabled={isSubmitting}
+                  className="bg-white/80 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-200"
+                />
+              </div>
 
-              {showDevCredentials && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs font-medium text-gray-700 mb-2">Development Credentials:</p>
-                  <div className="text-xs text-gray-600 space-y-1">
-                    <p>
-                      <strong>Username:</strong> sp it
-                    </p>
-                    <p>
-                      <strong>Password:</strong> SanRo@2019!
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <Lock className="h-4 w-4 text-blue-600" />
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                    className="bg-white/80 border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 pr-10 transition-all duration-200"
+                  />
                   <button
                     type="button"
-                    onClick={() => {
-                      setUsername("sp it")
-                      setPassword("SanRo@2019!")
-                    }}
-                    className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    disabled={isSubmitting}
                   >
-                    Auto-fill credentials
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-              )}
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-3 transition-all duration-200 shadow-lg hover:shadow-xl"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Authenticating...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Secure Login
+                  </span>
+                )}
+              </Button>
+            </form>
+
+            {/* Development credentials */}
+            <div className="mt-6 p-4 bg-slate-50/80 rounded-lg border border-slate-200/50 relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2 w-2 bg-amber-500 rounded-full"></div>
+                <p className="text-xs font-medium text-slate-700">Development Access</p>
+              </div>
+              <div className="text-xs text-slate-600 space-y-1">
+                <p>
+                  <strong>Username:</strong> sp it
+                </p>
+                <p>
+                  <strong>Password:</strong> SanRo@2019!
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername("sp it")
+                  setPassword("SanRo@2019!")
+                }}
+                className="mt-2 text-xs text-blue-600 hover:text-blue-800 underline transition-colors"
+              >
+                Auto-fill credentials
+              </button>
             </div>
-          )}
+          </div>
+
+          {/* Footer */}
+          <div className="text-center mt-6">
+            <p className="text-xs text-slate-500">Protected by enterprise-grade security protocols</p>
+          </div>
         </div>
       </div>
     </div>

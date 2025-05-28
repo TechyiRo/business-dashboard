@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { sendWorkUpdateEmail } from "@/lib/email-service"
 
 export async function GET() {
   try {
@@ -36,6 +37,29 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       )
+    }
+
+    // Get employee details for email
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+    })
+
+    if (!employee) {
+      return NextResponse.json(
+        {
+          error: "Employee not found",
+          details: "The specified employee ID does not exist",
+        },
+        { status: 404 },
+      )
+    }
+
+    // Get company details if provided
+    let company = null
+    if (companyId) {
+      company = await prisma.company.findUnique({
+        where: { id: companyId },
+      })
     }
 
     // Handle new tags - create them in the database
@@ -90,6 +114,28 @@ export async function POST(request: Request) {
         company: true,
       },
     })
+
+    // Send email notification if employee has an email
+    if (employee.email) {
+      try {
+        await sendWorkUpdateEmail(employee.email, employee.name, {
+          workName,
+          workDetail,
+          date,
+          workDuration,
+          tags: allTags,
+          employeeName: employee.name,
+          companyName: company?.name,
+          newTags,
+        })
+        console.log(`✅ Work update email sent to ${employee.email}`)
+      } catch (emailError) {
+        console.error("Error sending work update email:", emailError)
+        // Continue even if email sending fails
+      }
+    } else {
+      console.log(`⚠️ No email found for employee ${employee.name}, skipping notification`)
+    }
 
     return NextResponse.json(workUpdate)
   } catch (error) {
